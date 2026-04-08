@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, Modal,
+  View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Animated, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,29 +8,26 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { COLORS, PRAYERS } from '../constants';
 import { useApp } from '../context/AppContext';
+import { signOut } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from '../config/firebase';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 const CHILD_THEMES = [
-  { grad: ['#818cf8', '#c084fc'], bg: ['#0a0820', '#130d2e', '#0a0820'], accent: '#818cf8', light: 'rgba(129,140,248,0.15)' },
-  { grad: ['#34d399', '#10b981'], bg: ['#061510', '#0a2018', '#061510'], accent: '#34d399', light: 'rgba(52,211,153,0.15)' },
-  { grad: ['#fbbf24', '#f59e0b'], bg: ['#140e02', '#1e1506', '#140e02'], accent: '#fbbf24', light: 'rgba(251,191,36,0.15)' },
-  { grad: ['#f472b6', '#ec4899'], bg: ['#150610', '#1e0a18', '#150610'], accent: '#f472b6', light: 'rgba(244,114,182,0.15)' },
-  { grad: ['#fb923c', '#f97316'], bg: ['#140a04', '#1e1008', '#140a04'], accent: '#fb923c', light: 'rgba(251,146,60,0.15)' },
-  { grad: ['#60a5fa', '#3b82f6'], bg: ['#040e20', '#081530', '#040e20'], accent: '#60a5fa', light: 'rgba(96,165,250,0.15)' },
+  { grad: ['#818cf8', '#c084fc'], bg: ['#0a0820', '#130d2e', '#0a0820'], accent: '#818cf8' },
+  { grad: ['#34d399', '#10b981'], bg: ['#061510', '#0a2018', '#061510'], accent: '#34d399' },
+  { grad: ['#fbbf24', '#f59e0b'], bg: ['#140e02', '#1e1506', '#140e02'], accent: '#fbbf24' },
+  { grad: ['#f472b6', '#ec4899'], bg: ['#150610', '#1e0a18', '#150610'], accent: '#f472b6' },
+  { grad: ['#fb923c', '#f97316'], bg: ['#140a04', '#1e1008', '#140a04'], accent: '#fb923c' },
+  { grad: ['#60a5fa', '#3b82f6'], bg: ['#040e20', '#081530', '#040e20'], accent: '#60a5fa' },
 ];
 
-// Superhero theme for boys
 const BOY_THEME = {
   grad: ['#ef4444', '#1d4ed8'],
   bg: ['#060810', '#0a1428', '#0d0510'],
   accent: '#ef4444',
-  light: 'rgba(239,68,68,0.15)',
-  questLabel: "TODAY'S MISSION",
   backLabel: '⚡ HQ',
-  allDoneEmoji: '🦸',
-  allDoneText: 'Mission Complete! All 5 prayers!',
-  allDoneColor: '#ef4444',
   celebEmoji: '⚡',
   celebTitle: 'LEGENDARY!',
   celebSub: 'All 5 missions complete! 🦸',
@@ -41,17 +38,11 @@ const BOY_THEME = {
     : 'LEGENDARY! All missions complete! 🏆',
 };
 
-// Barbie theme for girls
 const GIRL_THEME = {
   grad: ['#ec4899', '#c084fc'],
   bg: ['#1a0520', '#2d0838', '#1a0520'],
   accent: '#ec4899',
-  light: 'rgba(236,72,153,0.15)',
-  questLabel: '✨ SPARKLE QUEST',
   backLabel: '💖 Home',
-  allDoneEmoji: '👑',
-  allDoneText: 'Amazing! All 5 prayers done! ✨',
-  allDoneColor: '#ec4899',
   celebEmoji: '💖',
   celebTitle: 'Fabulous!',
   celebSub: 'All 5 prayers sparkle today! ✨',
@@ -70,6 +61,31 @@ function getGreeting() {
   if (h < 20) return 'Good evening 🌅';
   return 'Good night 🌙';
 }
+
+const todayKey = () => new Date().toISOString().split('T')[0];
+
+const getLast7Days = () =>
+  Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return { key: d.toISOString().split('T')[0], d };
+  });
+
+const getMonthCalendar = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    cells.push({ key: date.toISOString().split('T')[0], d });
+  }
+  return { cells, monthName };
+};
 
 // ─── Confetti Piece ───────────────────────────────────────────────────────────
 const ConfettiPiece = ({ x, color, size, delay }) => {
@@ -101,7 +117,7 @@ const ConfettiPiece = ({ x, color, size, delay }) => {
 };
 
 // ─── Celebration Overlay ──────────────────────────────────────────────────────
-const CelebrationOverlay = ({ visible, childName, gender }) => {
+const CelebrationOverlay = ({ visible, childName, gender, latestEarned }) => {
   const bgOpacity = useRef(new Animated.Value(0)).current;
   const scale     = useRef(new Animated.Value(0.6)).current;
   const [confetti, setConfetti] = useState([]);
@@ -143,9 +159,9 @@ const CelebrationOverlay = ({ visible, childName, gender }) => {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {confetti.map(c => <ConfettiPiece key={c.id} {...c} />)}
-      <Animated.View style={[styles.celebBg, { opacity: bgOpacity }]}>
+      <Animated.View style={[hStyles.celebBg, { opacity: bgOpacity }]}>
         <Animated.View style={[
-          styles.celebCard,
+          hStyles.celebCard,
           { transform: [{ scale }] },
           isBoy  && { borderColor: 'rgba(239,68,68,0.6)', shadowColor: '#ef4444' },
           isGirl && { borderColor: 'rgba(236,72,153,0.6)', shadowColor: '#ec4899' },
@@ -154,165 +170,238 @@ const CelebrationOverlay = ({ visible, childName, gender }) => {
             {isBoy ? '⚡' : isGirl ? '💖' : '🎉'}
           </Text>
           <Text style={[
-            styles.celebMashallah,
+            hStyles.celebTitle,
             isBoy  && { color: '#ef4444' },
             isGirl && { color: '#ec4899' },
           ]}>
             {isBoy ? 'LEGENDARY!' : isGirl ? 'Fabulous!' : 'Mashallah!'}
           </Text>
-          <Text style={styles.celebName}>{childName}!</Text>
-          <Text style={styles.celebSub}>
-            {isBoy ? 'All 5 missions complete! 🦸' : isGirl ? 'All 5 prayers sparkle today! ✨' : 'All 5 prayers done today 🙏'}
+          <Text style={hStyles.celebName}>{childName}!</Text>
+          <Text style={hStyles.celebSub}>
+            {latestEarned
+              ? `${latestEarned.icon || '🏆'} ${latestEarned.label?.trim() || 'Reward'} earned — Mashallah!`
+              : isBoy ? 'All 5 missions complete! 🦸' : isGirl ? 'All 5 prayers sparkle today! ✨' : 'All 5 prayers done today 🙏'}
           </Text>
-          <Text style={styles.celebSub2}>+5 bonus points!</Text>
         </Animated.View>
       </Animated.View>
     </View>
   );
 };
 
-// ─── Rewards Map Modal ────────────────────────────────────────────────────────
-const RewardsMapModal = ({ visible, onClose, rewards, completeDays }) => {
-  const validRewards = rewards.filter(r => r.label?.trim());
+// ─── Prayer History Section ───────────────────────────────────────────────────
+function HistorySection({ logs, todayLog, today, theme, onTogglePrayer }) {
+  const [tab, setTab] = useState('today');
+  const days7 = getLast7Days();
+  const { cells, monthName } = getMonthCalendar();
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>Rewards Map ✨</Text>
-              <Text style={styles.modalSub}>
-                {completeDays} complete days · {validRewards.filter(r => completeDays >= r.days).length}/{validRewards.length} earned
+    <View style={{ gap: 8 }}>
+      <View style={hStyles.sectionRow}>
+        <Text style={hStyles.sectionLabel}>PROGRESS</Text>
+        <View style={hStyles.tabBar}>
+          {['today', 'week', 'month'].map(t => (
+            <TouchableOpacity
+              key={t}
+              onPress={() => setTab(t)}
+              style={[hStyles.tabBtn, tab === t && { backgroundColor: theme.accent + '25', borderColor: theme.accent + '60' }]}
+            >
+              <Text style={[hStyles.tabText, tab === t && { color: theme.accent }]}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
               </Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</Text>
             </TouchableOpacity>
-          </View>
+          ))}
+        </View>
+      </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {validRewards.map((r, i) => {
-              const earned    = completeDays >= r.days;
-              const prevDays  = i > 0 ? validRewards[i - 1].days : 0;
-              const isCurrent = !earned && (i === 0 || completeDays >= prevDays);
-              const pct       = isCurrent ? Math.min(100, ((completeDays - prevDays) / (r.days - prevDays)) * 100) : 0;
-              const isLast    = i === validRewards.length - 1;
+      <View style={hStyles.card}>
+        {/* ── Today ── */}
+        {tab === 'today' && PRAYERS.map((p, i) => {
+          const done = !!todayLog[p.id];
+          return (
+            <TouchableOpacity
+              key={p.id}
+              onPress={() => onTogglePrayer(p.id)}
+              activeOpacity={0.72}
+              style={[
+                hStyles.prayerRow,
+                i < PRAYERS.length - 1 && hStyles.prayerDivider,
+                done && { backgroundColor: p.color + '08' },
+              ]}
+            >
+              <Text style={hStyles.prayerEmoji}>{p.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[hStyles.prayerName, done && { color: '#fff' }]}>{p.name}</Text>
+                <Text style={hStyles.prayerTime}>{p.clockTime} · {p.time}</Text>
+              </View>
+              <View style={[hStyles.checkCircle, done && { backgroundColor: p.color + '20', borderColor: p.color }]}>
+                {done && <Text style={[hStyles.checkMark, { color: p.color }]}>✓</Text>}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
 
+        {/* ── Week ── */}
+        {tab === 'week' && (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            {days7.map(({ key, d }) => {
+              const dayLog = logs[key] || {};
+              const count = PRAYERS.filter(p => dayLog[p.id]).length;
+              const isToday = key === today;
+              const isFuture = key > today;
+              const allDone = count === 5;
               return (
-                <View key={r.id}>
+                <View key={key} style={hStyles.dayCol}>
+                  <Text style={[hStyles.dayLetter, isToday && { color: theme.accent }]}>
+                    {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
+                  </Text>
                   <View style={[
-                    styles.rewardNode,
-                    earned && styles.rewardNodeEarned,
-                    isCurrent && styles.rewardNodeCurrent,
+                    hStyles.dayCircle,
+                    isToday && { borderColor: theme.accent + '80' },
+                    allDone && { backgroundColor: theme.accent + '25', borderColor: theme.accent },
                   ]}>
-                    <View style={[
-                      styles.rewardNodeIcon,
-                      { borderColor: earned ? COLORS.purple : 'rgba(255,255,255,0.1)', backgroundColor: earned ? 'rgba(129,140,248,0.2)' : 'rgba(255,255,255,0.04)' },
-                      !earned && { opacity: 0.4 },
-                    ]}>
-                      <Text style={{ fontSize: 24 }}>{r.icon}</Text>
-                    </View>
-
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.rewardNodeLabel, !earned && !isCurrent && { color: 'rgba(255,255,255,0.3)' }]}>
-                        {r.label}
-                      </Text>
-                    </View>
-
-                    <View style={{ alignItems: 'flex-end' }}>
-                      {earned ? (
-                        <View style={styles.earnedBadge}>
-                          <Text style={styles.earnedBadgeText}>Earned ✓</Text>
-                        </View>
-                      ) : isCurrent ? (
-                        <View>
-                          <Text style={styles.ptsLeft}>{r.days - completeDays} days left</Text>
-                          <View style={styles.miniBarBg}>
-                            <View style={[styles.miniBarFill, { width: `${pct}%` }]} />
+                    {isFuture
+                      ? <Text style={hStyles.futureDash}>–</Text>
+                      : (
+                        <View style={hStyles.weekDots}>
+                          <View style={hStyles.weekDotsRow}>
+                            {PRAYERS.slice(0, 3).map(p => (
+                              <View key={p.id} style={[hStyles.weekDot, { backgroundColor: dayLog[p.id] ? p.color : 'rgba(255,255,255,0.12)' }]} />
+                            ))}
+                          </View>
+                          <View style={hStyles.weekDotsRow}>
+                            {PRAYERS.slice(3).map(p => (
+                              <View key={p.id} style={[hStyles.weekDot, { backgroundColor: dayLog[p.id] ? p.color : 'rgba(255,255,255,0.12)' }]} />
+                            ))}
                           </View>
                         </View>
-                      ) : (
-                        <Text style={styles.lockedPts}>{r.days} days</Text>
-                      )}
-                    </View>
+                      )
+                    }
                   </View>
-                  {!isLast && (
-                    <View style={[styles.connector, earned && { backgroundColor: 'rgba(129,140,248,0.4)' }]} />
-                  )}
                 </View>
               );
             })}
-
-            <View style={styles.totalPill}>
-              <Text style={{ fontSize: 20 }}>🏅</Text>
-              <Text style={styles.totalPtsText}>{completeDays} complete days</Text>
-            </View>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-};
-
-// ─── Prayer Card ──────────────────────────────────────────────────────────────
-function PrayerCard({ prayer, done, onPress, scaleAnim, theme, gender }) {
-  const isBoy  = gender === 'boy';
-  const isGirl = gender === 'girl';
-  return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity
-        onPress={onPress}
-        activeOpacity={0.85}
-        style={[
-          styles.prayerCard,
-          isBoy  && { borderRadius: 10, borderLeftWidth: 4, borderLeftColor: theme.accent + '80' },
-          isGirl && { borderRadius: 28 },
-          done && {
-            backgroundColor: prayer.color + '12',
-            borderColor: prayer.color + '60',
-            shadowColor: prayer.color,
-            shadowOpacity: 0.35,
-            shadowRadius: 14,
-            shadowOffset: { width: 0, height: 4 },
-            elevation: 8,
-          },
-        ]}
-      >
-        {/* Left color accent stripe when done */}
-        {done && <View style={[styles.cardStripe, { backgroundColor: prayer.color }]} />}
-
-        {/* Emoji */}
-        <Text style={styles.cardEmoji}>{prayer.emoji}</Text>
-
-        {/* Info */}
-        <View style={styles.cardInfo}>
-          <View style={styles.cardNameRow}>
-            <Text style={[styles.cardName, done && { color: '#ffffff' }]}>{prayer.name}</Text>
-            <Text style={styles.cardArabic}>{prayer.arabic}</Text>
           </View>
-          <Text style={styles.cardTime}>{prayer.clockTime} · {prayer.time}</Text>
-        </View>
+        )}
 
-        {/* Check circle */}
-        <View style={[
-          styles.cardCheck,
-          done && {
-            backgroundColor: prayer.color,
-            shadowColor: prayer.color,
-            shadowOpacity: 0.7,
-            shadowRadius: 10,
-            elevation: 6,
-          },
-        ]}>
-          <Text style={{ color: done ? '#ffffff' : 'rgba(255,255,255,0.2)', fontSize: done ? 17 : 19, fontWeight: '900' }}>
-            {done ? '✓' : '○'}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
+        {/* ── Month ── */}
+        {tab === 'month' && (
+          <View>
+            <Text style={hStyles.monthTitle}>{monthName}</Text>
+            <View style={hStyles.monthDowRow}>
+              {['S','M','T','W','T','F','S'].map((d, i) => (
+                <Text key={i} style={hStyles.monthDow}>{d}</Text>
+              ))}
+            </View>
+            <View style={hStyles.monthGrid}>
+              {cells.map((cell, i) => {
+                if (!cell) return <View key={i} style={hStyles.monthCell} />;
+                const dayLog = logs[cell.key] || {};
+                const count = PRAYERS.filter(p => dayLog[p.id]).length;
+                const isToday = cell.key === today;
+                const isFuture = cell.key > today;
+                const allDone = count === 5 && !isFuture;
+                return (
+                  <View key={cell.key} style={hStyles.monthCell}>
+                    <View style={[
+                      hStyles.monthDayCircle,
+                      isToday && { borderColor: theme.accent },
+                      allDone && { backgroundColor: theme.accent + '30', borderColor: theme.accent },
+                    ]}>
+                      <Text style={[
+                        hStyles.monthDayNum,
+                        isToday && { color: theme.accent, fontWeight: '900' },
+                        allDone && { color: theme.accent },
+                        isFuture && { opacity: 0.2 },
+                      ]}>{cell.d}</Text>
+                    </View>
+                    {!isFuture && (
+                      <View style={hStyles.monthMiniDots}>
+                        {PRAYERS.map(p => (
+                          <View key={p.id} style={[hStyles.monthMiniDot, { backgroundColor: dayLog[p.id] ? p.color : 'rgba(255,255,255,0.1)' }]} />
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// ─── Rewards Journey (read-only) ──────────────────────────────────────────────
+function RewardsJourney({ rewards, completeDays, theme }) {
+  const sorted = [...rewards].sort((a, b) => a.days - b.days);
+  if (sorted.length === 0) return null;
+
+  return (
+    <View>
+      {sorted.map((r, idx) => {
+        const earned   = completeDays >= r.days;
+        const isNext   = !earned && (idx === 0 || completeDays >= (sorted[idx - 1]?.days ?? 0));
+        const progress = Math.min((completeDays / r.days) * 100, 100);
+        const durationLabel = `${r.days} Day${r.days !== 1 ? 's' : ''}`;
+        const isLast   = idx === sorted.length - 1;
+
+        return (
+          <View key={r.id} style={hStyles.journeyStep}>
+            <View style={hStyles.journeyLeft}>
+              <View style={[
+                hStyles.stepDot,
+                earned && { backgroundColor: theme.accent, borderColor: theme.accent },
+                isNext && !earned && { borderColor: theme.accent },
+              ]}>
+                <Text style={[hStyles.stepNum, earned && { color: COLORS.white }, isNext && !earned && { color: theme.accent }]}>
+                  {earned ? '✓' : idx + 1}
+                </Text>
+              </View>
+              {!isLast && (
+                <View style={[hStyles.stepLine, earned && { backgroundColor: theme.accent + '50' }]} />
+              )}
+            </View>
+
+            <View style={[
+              hStyles.journeyCard,
+              isNext && { borderColor: theme.accent + '50', backgroundColor: theme.accent + '08' },
+              earned && { borderColor: theme.accent + '30' },
+            ]}>
+              <View style={hStyles.journeyCardTop}>
+                <Text style={{ fontSize: 24 }}>{r.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[hStyles.journeyRewardName, earned && { color: theme.accent }]}>
+                    {r.label?.trim() || 'Unnamed'}
+                  </Text>
+                  <Text style={hStyles.journeyRewardDays}>{durationLabel}</Text>
+                </View>
+              </View>
+
+              {earned ? (
+                <View style={[hStyles.earnedBadge, { borderColor: theme.accent + '50', backgroundColor: theme.accent + '12' }]}>
+                  <Text style={[hStyles.earnedText, { color: theme.accent }]}>🎉 Earned! ({r.days} complete days)</Text>
+                </View>
+              ) : (
+                <View style={{ marginTop: 10 }}>
+                  <View style={hStyles.progressRow}>
+                    <Text style={hStyles.progressLabel}>{completeDays} / {r.days} complete days</Text>
+                    <Text style={[hStyles.progressPct, isNext && { color: theme.accent }]}>{Math.round(progress)}%</Text>
+                  </View>
+                  <View style={hStyles.progressBg}>
+                    <LinearGradient
+                      colors={theme.grad}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                      style={[hStyles.progressFill, { width: `${Math.max(progress, 1)}%` }]}
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -322,16 +411,15 @@ export default function HomeScreen({ navigation, route }) {
   const { state, loadChildById, togglePrayer, getTodayLog, getStreak, getCompleteDays } = useApp();
   const { childId } = route.params || {};
 
-  // Load child if in child mode (Firestore fetch)
   useEffect(() => {
     if (childId && !state.children.find(c => c.id === childId)) {
       loadChildById(childId);
     }
   }, [childId]);
 
-  const childIndex = state.children.findIndex(c => c.id === childId);
-  const child      = state.children[childIndex] ?? state.children[0];
-  const baseTheme  = CHILD_THEMES[Math.max(0, childIndex) % CHILD_THEMES.length];
+  const childIndex  = state.children.findIndex(c => c.id === childId);
+  const child       = state.children[childIndex] ?? state.children[0];
+  const baseTheme   = CHILD_THEMES[Math.max(0, childIndex) % CHILD_THEMES.length];
   const genderTheme = child?.gender === 'boy' ? BOY_THEME : child?.gender === 'girl' ? GIRL_THEME : null;
   const theme       = genderTheme ? { ...baseTheme, ...genderTheme } : baseTheme;
 
@@ -340,14 +428,15 @@ export default function HomeScreen({ navigation, route }) {
   const completeDays = getCompleteDays(child?.id);
   const prayedCount  = PRAYERS.filter(p => todayLog[p.id]).length;
   const allDone      = prayedCount === PRAYERS.length;
+  const logs         = state.prayerLogs[child?.id] || {};
+
+  const childRewards  = child?.rewards ?? [];
+  const earnedRewards = childRewards.filter(r => completeDays >= r.days);
+  const latestEarned  = earnedRewards.length > 0
+    ? [...earnedRewards].sort((a, b) => b.days - a.days)[0]
+    : null;
 
   const [showCelebration, setShowCelebration] = useState(false);
-  const [showRewards, setShowRewards]         = useState(false);
-
-  // Per-prayer scale animations
-  const scaleAnims = useRef(
-    PRAYERS.reduce((acc, p) => ({ ...acc, [p.id]: new Animated.Value(1) }), {})
-  ).current;
 
   // Pulse avatar while not all done
   const avatarPulse = useRef(new Animated.Value(1)).current;
@@ -363,29 +452,11 @@ export default function HomeScreen({ navigation, route }) {
     return () => loop.stop();
   }, [allDone]);
 
-  // Rewards
-  const childRewards   = child?.rewards?.filter(r => r.label?.trim()) ?? [];
-  const nextReward     = childRewards.find(r => completeDays < r.days);
-  const prevRewardDays = (() => {
-    const earned = childRewards.filter(r => completeDays >= r.days);
-    return earned.length > 0 ? earned[earned.length - 1].days : 0;
-  })();
-  const rewardProgress = nextReward
-    ? Math.min(100, ((completeDays - prevRewardDays) / (nextReward.days - prevRewardDays)) * 100)
-    : 100;
-
   const handleTogglePrayer = (prayerId) => {
     if (!child) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    Animated.sequence([
-      Animated.spring(scaleAnims[prayerId], { toValue: 1.05, friction: 4, useNativeDriver: true }),
-      Animated.spring(scaleAnims[prayerId], { toValue: 1, friction: 5, useNativeDriver: true }),
-    ]).start();
-
     const wasDone = !!todayLog[prayerId];
     togglePrayer(child.id, prayerId);
-
     if (!wasDone && prayedCount + 1 === PRAYERS.length) {
       setTimeout(() => {
         setShowCelebration(true);
@@ -403,240 +474,210 @@ export default function HomeScreen({ navigation, route }) {
     );
   }
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
   return (
     <LinearGradient colors={theme.bg} style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32 }]}
+        contentContainerStyle={[hStyles.scroll, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ─── Back Button ─────────────────────────────────────── */}
-        <TouchableOpacity
-          onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('ModeSelect')}
-          style={[styles.backBtn, genderTheme && { borderColor: theme.accent + '40', backgroundColor: theme.accent + '12' }]}
-        >
-          <Text style={[styles.backBtnText, genderTheme && { color: theme.accent }]}>
-            {genderTheme ? theme.backLabel : '← Family'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* ─── Hero Section ─────────────────────────────────────── */}
-        <View style={styles.hero}>
-          <Text style={styles.greetingText}>{getGreeting()}</Text>
-          <Text style={styles.dateText}>{today}</Text>
-
-          {/* Avatar */}
-          <Animated.View style={[styles.avatarWrapper, { transform: [{ scale: avatarPulse }] }]}>
-            <LinearGradient colors={theme.grad} style={[styles.avatarCircle, { shadowColor: theme.accent }]}>
-              <Text style={{ fontSize: 42 }}>{child.avatar}</Text>
+        {/* ─── Header ──────────────────────────────────────────── */}
+        <View style={hStyles.header}>
+          {/* Avatar with pulse */}
+          <Animated.View style={{ transform: [{ scale: avatarPulse }] }}>
+            <LinearGradient colors={theme.grad} style={[hStyles.headerAvatar, { shadowColor: theme.accent }]}>
+              <Text style={{ fontSize: 28 }}>{child.avatar}</Text>
             </LinearGradient>
-            {allDone && (
-              <View style={[styles.avatarDoneBadge, { backgroundColor: theme.accent + '25', borderColor: theme.accent }]}>
-                <Text style={{ fontSize: 18 }}>✓</Text>
-              </View>
-            )}
           </Animated.View>
 
-          <Text style={styles.heroName}>{child.name}</Text>
-
-          {/* Streak badge */}
-          {streak > 0 && (
-            <View style={styles.streakBadge}>
-              <Text style={styles.streakText}>🔥 {streak} day streak</Text>
+          {/* Name + chips */}
+          <View style={{ flex: 1 }}>
+            <Text style={hStyles.greetingText}>{getGreeting()}</Text>
+            <Text style={hStyles.childName}>{child.name}</Text>
+            <View style={hStyles.chips}>
+              <View style={hStyles.chip}>
+                <Text style={hStyles.chipText}>✓ {completeDays}d</Text>
+              </View>
+              <View style={[hStyles.chip, { backgroundColor: theme.accent + '18', borderColor: theme.accent + '45' }]}>
+                <Text style={[hStyles.chipText, { color: theme.accent }]}>🏆 {earnedRewards.length}</Text>
+              </View>
             </View>
-          )}
-        </View>
-
-        {/* ─── TODAY'S QUEST ────────────────────────────────────── */}
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionLine} />
-          <Text style={styles.sectionLabel}>{genderTheme ? theme.questLabel : "TODAY'S QUEST"}</Text>
-          <Text style={[styles.sectionCount, allDone && { color: COLORS.green }]}>
-            {allDone ? '✓ Complete!' : `${prayedCount} / 5`}
-          </Text>
-          <View style={styles.sectionLine} />
-        </View>
-
-        {/* Prayer cards */}
-        <View style={styles.prayerList}>
-          {PRAYERS.map(p => (
-            <PrayerCard
-              key={p.id}
-              prayer={p}
-              done={!!todayLog[p.id]}
-              onPress={() => handleTogglePrayer(p.id)}
-              scaleAnim={scaleAnims[p.id]}
-              theme={theme}
-              gender={child.gender}
-            />
-          ))}
-        </View>
-
-        {/* All done banner */}
-        {allDone && (
-          <View style={[styles.allDoneBanner, {
-            borderColor: (genderTheme ? theme.allDoneColor : COLORS.green) + '40',
-            backgroundColor: (genderTheme ? theme.allDoneColor : COLORS.green) + '10',
-          }]}>
-            <Text style={{ fontSize: 24 }}>{genderTheme ? theme.allDoneEmoji : '🌟'}</Text>
-            <Text style={[styles.allDoneText, { color: genderTheme ? theme.allDoneColor : COLORS.green }]}>
-              {genderTheme ? theme.allDoneText : 'Mashallah! All 5 prayers done today!'}
-            </Text>
           </View>
-        )}
 
-        {/* ─── NEXT REWARD ──────────────────────────────────────── */}
-        {nextReward && (
-          <>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionLine} />
-              <Text style={styles.sectionLabel}>NEXT REWARD</Text>
-              <View style={styles.sectionLine} />
-            </View>
+        </View>
 
-            <TouchableOpacity onPress={() => setShowRewards(true)} activeOpacity={0.85} style={styles.rewardCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-                <Text style={{ fontSize: 32 }}>{nextReward.icon}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rewardName}>{nextReward.label}</Text>
-                  <Text style={[styles.rewardSub, { color: theme.accent }]}>
-                    {completeDays} / {nextReward.days} complete days
-                  </Text>
-                </View>
-                <Text style={[styles.viewAll, { color: theme.accent }]}>View all →</Text>
-              </View>
-              <View style={styles.rewardBarBg}>
-                <LinearGradient
-                  colors={theme.grad}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  style={[styles.rewardBarFill, { width: `${rewardProgress}%` }]}
-                />
-              </View>
-              <Text style={styles.rewardDaysLeft}>
-                {nextReward.days - completeDays} more complete days to go!
-              </Text>
-            </TouchableOpacity>
-          </>
-        )}
+        {/* ─── Progress ──────────────────────────────────────────── */}
+        <HistorySection
+          logs={logs}
+          todayLog={todayLog}
+          today={todayKey()}
+          theme={theme}
+          onTogglePrayer={handleTogglePrayer}
+        />
 
-        {/* Motivational footer */}
-        <View style={styles.motivationPill}>
+        {/* ─── Motivational pill ─────────────────────────────────── */}
+        <View style={hStyles.motivationPill}>
           <Text style={{ fontSize: 16 }}>🕌</Text>
-          <Text style={styles.motivationText}>
-            {genderTheme
-              ? theme.getMotivation(prayedCount)
+          <Text style={hStyles.motivationText}>
+            {allDone && latestEarned
+              ? `${latestEarned.label?.trim() || 'Reward'} earned — keep it up! ${latestEarned.icon || '⭐'}`
+              : genderTheme
+              ? genderTheme.getMotivation(prayedCount)
               : prayedCount === 0
               ? 'Start your quest — every prayer counts!'
               : prayedCount < 3
               ? `Great start! ${5 - prayedCount} more to go.`
               : prayedCount < 5
               ? `Almost there! Just ${5 - prayedCount} left!`
-              : 'Incredible work today! 🏆'}
+              : 'Incredible work today! ⭐'}
           </Text>
         </View>
+
+        {/* ─── Rewards Journey ───────────────────────────────────── */}
+        {childRewards.length > 0 && (
+          <>
+            <View style={hStyles.sectionRow}>
+              <Text style={hStyles.sectionLabel}>REWARDS JOURNEY</Text>
+              {earnedRewards.length > 0 && (
+                <View style={[hStyles.earnedChip, { backgroundColor: theme.accent + '18', borderColor: theme.accent + '45' }]}>
+                  <Text style={[hStyles.earnedChipText, { color: theme.accent }]}>
+                    {earnedRewards.length}/{childRewards.length} earned
+                  </Text>
+                </View>
+              )}
+            </View>
+            <RewardsJourney rewards={child.rewards} completeDays={completeDays} theme={theme} />
+          </>
+        )}
+
+        {/* ─── Sign out ──────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={hStyles.signOutBtn}
+          onPress={async () => {
+            await signOut(auth);
+            await AsyncStorage.removeItem('@pq/mode');
+            navigation.replace('ModeSelect');
+          }}
+        >
+          <Text style={hStyles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
       </ScrollView>
 
-      <CelebrationOverlay visible={showCelebration} childName={child.name} gender={child.gender} />
-      <RewardsMapModal
-        visible={showRewards}
-        onClose={() => setShowRewards(false)}
-        rewards={child?.rewards ?? []}
-        completeDays={completeDays}
-      />
+      <CelebrationOverlay visible={showCelebration} childName={child.name} gender={child.gender} latestEarned={latestEarned} />
     </LinearGradient>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 20, gap: 12 },
+const hStyles = StyleSheet.create({
+  scroll: { paddingHorizontal: 20, gap: 14 },
 
-  backBtn: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 14, paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+  // Header (mirrors parent modal)
+  header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  headerAvatar: {
+    width: 56, height: 56, borderRadius: 28,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)',
+    shadowOpacity: 0.5, shadowRadius: 16, elevation: 10,
+  },
+  greetingText: { color: 'rgba(255,255,255,0.35)', fontSize: 11, fontWeight: '700', marginBottom: 2 },
+  childName: { color: '#ffffff', fontSize: 20, fontWeight: '900', marginBottom: 6 },
+  chips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  chip: {
+    paddingHorizontal: 9, paddingVertical: 3,
     borderRadius: 100,
-  },
-  backBtnText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '700' },
-
-  // Hero
-  hero: { alignItems: 'center', gap: 8, paddingVertical: 12 },
-  greetingText: { color: 'rgba(255,255,255,0.45)', fontSize: 13, fontWeight: '700' },
-  dateText: { color: 'rgba(255,255,255,0.3)', fontSize: 12, marginBottom: 4 },
-  avatarWrapper: { position: 'relative', marginVertical: 4 },
-  avatarCircle: {
-    width: 96, height: 96, borderRadius: 48,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.2)',
-    shadowOpacity: 0.6, shadowRadius: 24, elevation: 14,
-  },
-  avatarDoneBadge: {
-    position: 'absolute', bottom: -2, right: -2,
-    width: 34, height: 34, borderRadius: 17,
-    borderWidth: 2, alignItems: 'center', justifyContent: 'center',
-  },
-  heroName: { color: '#ffffff', fontSize: 26, fontWeight: '900', letterSpacing: 0.3 },
-  streakBadge: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(251,191,36,0.1)',
-    borderWidth: 1.5, borderColor: 'rgba(251,191,36,0.3)',
-    borderRadius: 100, paddingHorizontal: 14, paddingVertical: 6,
-  },
-  streakText: { color: '#fbbf24', fontSize: 13, fontWeight: '800' },
-
-  // Section header
-  sectionHeader: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4,
-  },
-  sectionLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
-  sectionLabel: { color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' },
-  sectionCount: { color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: '900' },
-
-  // Prayer cards
-  prayerList: { gap: 8 },
-  prayerCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 18, paddingVertical: 16, paddingHorizontal: 16,
-    overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
-  cardStripe: {
-    position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, borderRadius: 2,
-  },
-  cardEmoji: { fontSize: 24, width: 30, textAlign: 'center' },
-  cardInfo: { flex: 1 },
-  cardNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
-  cardName: { color: 'rgba(255,255,255,0.65)', fontSize: 16, fontWeight: '800' },
-  cardArabic: { color: 'rgba(255,255,255,0.25)', fontSize: 13 },
-  cardTime: { color: 'rgba(255,255,255,0.35)', fontSize: 12, fontWeight: '600' },
-  cardCheck: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+  chipText: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '800' },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center', justifyContent: 'center',
   },
 
-  // All done
-  allDoneBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 14, borderRadius: 16, borderWidth: 1.5,
+  // Section headers
+  sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionLabel: { color: 'rgba(255,255,255,0.25)', fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2 },
+  tabBar: { flexDirection: 'row', gap: 5 },
+  tabBtn: {
+    paddingHorizontal: 11, paddingVertical: 5, borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
-  allDoneText: { fontSize: 14, fontWeight: '800', flex: 1 },
+  tabText: { color: 'rgba(255,255,255,0.35)', fontSize: 11, fontWeight: '800' },
 
-  // Reward card
-  rewardCard: {
+  // Card
+  card: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 22, padding: 18,
+    borderRadius: 18, padding: 14,
   },
-  rewardName: { color: '#ffffff', fontSize: 16, fontWeight: '900' },
-  rewardSub: { fontSize: 12, fontWeight: '700', marginTop: 2 },
-  viewAll: { fontSize: 11, fontWeight: '800' },
-  rewardBarBg: { height: 8, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 100, overflow: 'hidden', marginBottom: 8 },
-  rewardBarFill: { height: '100%', borderRadius: 100 },
-  rewardDaysLeft: { color: 'rgba(255,255,255,0.35)', fontSize: 12, fontWeight: '600' },
+
+  // Today prayer rows
+  prayerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  prayerDivider: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  prayerEmoji: { fontSize: 20, width: 26, textAlign: 'center' },
+  prayerName: { color: 'rgba(255,255,255,0.7)', fontSize: 15, fontWeight: '800' },
+  prayerTime: { color: 'rgba(255,255,255,0.28)', fontSize: 11, marginTop: 1 },
+  checkCircle: {
+    width: 30, height: 30, borderRadius: 15,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkMark: { fontSize: 14, fontWeight: '900' },
+
+  // Week tab
+  dayCol: { alignItems: 'center', gap: 5, flex: 1 },
+  dayLetter: { color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: '800' },
+  dayCircle: { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  weekDots: { gap: 3, alignItems: 'center' },
+  weekDotsRow: { flexDirection: 'row', gap: 3 },
+  weekDot: { width: 6, height: 6, borderRadius: 3 },
+  futureDash: { color: 'rgba(255,255,255,0.1)', fontSize: 12 },
+
+  // Month tab
+  monthTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: '800', textAlign: 'center', marginBottom: 10 },
+  monthDowRow: { flexDirection: 'row', marginBottom: 6 },
+  monthDow: { width: `${100 / 7}%`, textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 9, fontWeight: '800' },
+  monthGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  monthCell: { width: `${100 / 7}%`, alignItems: 'center', paddingVertical: 3 },
+  monthDayCircle: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'transparent' },
+  monthDayNum: { color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: '700' },
+  monthMiniDots: { flexDirection: 'row', gap: 1.5, marginTop: 1 },
+  monthMiniDot: { width: 4, height: 4, borderRadius: 2 },
+
+  // Rewards journey
+  earnedChip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 100, borderWidth: 1 },
+  earnedChipText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+
+  journeyStep: { flexDirection: 'row', gap: 12, marginBottom: 4 },
+  journeyLeft: { alignItems: 'center', width: 28 },
+  stepDot: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  stepNum: { color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: '900' },
+  stepLine: { width: 2, flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginVertical: 4, borderRadius: 1 },
+
+  journeyCard: {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16, padding: 14, marginBottom: 8,
+  },
+  journeyCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  journeyRewardName: { color: COLORS.white, fontSize: 14, fontWeight: '800' },
+  journeyRewardDays: { color: 'rgba(255,255,255,0.3)', fontSize: 11, marginTop: 2 },
+
+  earnedBadge: { marginTop: 10, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6 },
+  earnedText: { fontSize: 12, fontWeight: '800' },
+
+  progressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  progressLabel: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
+  progressPct: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '900' },
+  progressBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 100, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 100 },
 
   // Motivation
   motivationPill: {
@@ -660,55 +701,17 @@ const styles = StyleSheet.create({
     shadowColor: '#34d399', shadowOpacity: 0.5, shadowRadius: 30, elevation: 20,
     maxWidth: SCREEN_W - 80,
   },
-  celebMashallah: { color: '#34d399', fontSize: 32, fontWeight: '900', marginBottom: 4 },
+  celebTitle: { color: '#34d399', fontSize: 32, fontWeight: '900', marginBottom: 4 },
   celebName: { color: '#ffffff', fontSize: 24, fontWeight: '800', marginBottom: 8 },
   celebSub: { color: 'rgba(255,255,255,0.5)', fontSize: 15, textAlign: 'center' },
-  celebSub2: { color: '#fbbf24', fontSize: 14, fontWeight: '800', marginTop: 6 },
 
-  // Rewards modal
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' },
-  modalSheet: {
-    backgroundColor: '#130d2e',
-    borderTopLeftRadius: 32, borderTopRightRadius: 32,
-    padding: 24, maxHeight: '88%',
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)',
+  // Sign out
+  signOutBtn: {
+    alignSelf: 'center', marginTop: 8,
+    paddingHorizontal: 20, paddingVertical: 9,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
-  modalHandle: { width: 38, height: 4, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 2, alignSelf: 'center', marginBottom: 22 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  modalTitle: { color: COLORS.white, fontSize: 20, fontWeight: '900' },
-  modalSub: { color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 2 },
-  closeBtn: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center',
-  },
-
-  rewardNode: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    padding: 14, borderRadius: 18,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.07)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  rewardNodeEarned: { borderColor: 'rgba(255,255,255,0.2)' },
-  rewardNodeCurrent: { borderColor: 'rgba(129,140,248,0.5)', backgroundColor: 'rgba(129,140,248,0.08)' },
-  rewardNodeIcon: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  rewardNodeLabel: { color: COLORS.white, fontSize: 14, fontWeight: '900' },
-  earnedBadge: {
-    backgroundColor: 'rgba(129,140,248,0.18)',
-    borderWidth: 1, borderColor: 'rgba(129,140,248,0.5)',
-    borderRadius: 100, paddingHorizontal: 10, paddingVertical: 4,
-  },
-  earnedBadgeText: { color: COLORS.purple, fontSize: 11, fontWeight: '900' },
-  ptsLeft: { color: COLORS.purple, fontSize: 11, fontWeight: '800', textAlign: 'right' },
-  miniBarBg: { marginTop: 5, height: 4, width: 64, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 100, overflow: 'hidden' },
-  miniBarFill: { height: '100%', backgroundColor: COLORS.purple, borderRadius: 100 },
-  lockedPts: { color: 'rgba(255,255,255,0.2)', fontSize: 11, fontWeight: '700' },
-  connector: { width: 2, height: 14, marginLeft: 37, backgroundColor: 'rgba(255,255,255,0.07)' },
-  totalPill: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    marginTop: 20, marginBottom: 8,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 100,
-    paddingHorizontal: 22, paddingVertical: 11,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)',
-  },
-  totalPtsText: { color: COLORS.white, fontSize: 16, fontWeight: '900' },
+  signOutText: { color: 'rgba(255,255,255,0.2)', fontSize: 12, fontWeight: '700' },
 });

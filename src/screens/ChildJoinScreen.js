@@ -118,7 +118,7 @@ export default function ChildJoinScreen({ navigation }) {
 
   return (
     <LinearGradient
-      colors={['#0d0d1a', '#001a0d', '#0d0d1a']}
+      colors={['#0d0d1a', '#130d2e', '#0d0d1a']}
       style={[styles.root, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
     >
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -166,7 +166,7 @@ export default function ChildJoinScreen({ navigation }) {
                 disabled={code.length !== 6 || loading}
               >
                 <LinearGradient
-                  colors={['#34d399', '#10b981']}
+                  colors={['#818cf8', '#c084fc']}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                   style={styles.joinBtnGrad}
                 >
@@ -208,9 +208,9 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
   },
-  tabActive: { backgroundColor: 'rgba(52,211,153,0.18)', borderWidth: 1, borderColor: 'rgba(52,211,153,0.3)' },
+  tabActive: { backgroundColor: 'rgba(129,140,248,0.18)', borderWidth: 1, borderColor: 'rgba(129,140,248,0.35)' },
   tabText: { color: 'rgba(255,255,255,0.4)', fontSize: 13, fontWeight: '700' },
-  tabTextActive: { color: '#34d399' },
+  tabTextActive: { color: '#818cf8' },
 
   // Camera
   cameraBox: {
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   },
   finder: {
     position: 'absolute', width: 200, height: 200,
-    borderWidth: 3, borderColor: '#34d399', borderRadius: 20,
+    borderWidth: 3, borderColor: '#818cf8', borderRadius: 20,
     top: '50%', left: '50%',
     transform: [{ translateX: -100 }, { translateY: -120 }],
   },
@@ -234,11 +234,11 @@ const styles = StyleSheet.create({
   permissionBox: { alignItems: 'center', paddingVertical: 40, gap: 16 },
   permissionText: { color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center' },
   permissionBtn: {
-    backgroundColor: 'rgba(52,211,153,0.15)',
-    borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.4)',
+    backgroundColor: 'rgba(129,140,248,0.15)',
+    borderWidth: 1.5, borderColor: 'rgba(129,140,248,0.4)',
     borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12,
   },
-  permissionBtnText: { color: '#34d399', fontSize: 14, fontWeight: '800' },
+  permissionBtnText: { color: '#818cf8', fontSize: 14, fontWeight: '800' },
 
   // Code entry
   codeSection: { gap: 14 },
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   codeInputWrapper: { gap: 6 },
   codeInput: {
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.3)',
+    borderWidth: 1.5, borderColor: 'rgba(129,140,248,0.35)',
     borderRadius: 18, paddingHorizontal: 24, paddingVertical: 18,
     color: '#ffffff', fontSize: 32, fontWeight: '900',
     letterSpacing: 10, textAlign: 'center',

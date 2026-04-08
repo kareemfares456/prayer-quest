@@ -13,21 +13,28 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourname.prayerquest"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0d0d1a"
-      },
-      "package": "com.yourname.prayerquest"
+      "bundleIdentifier": "com.kfares.prayerquest",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Scan the QR code shown by your parent to join the family."
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font",
-      "expo-asset"
-    ]
+      "expo-asset",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scan the QR code shown by your parent to join the family."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1d7d92f2-34c7-44ec-aa99-93b3db7362f0"
+      }
+    }
   }
 }
