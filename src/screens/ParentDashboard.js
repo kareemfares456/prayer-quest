@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, Modal, Share, ActivityIndicator,
+  StyleSheet, Modal, Share, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -136,7 +136,20 @@ function HistorySection({ logs, todayLog, today, theme }) {
                   ]}>
                     {isFuture
                       ? <Text style={pStyles.futureDash}>–</Text>
-                      : <Text style={[pStyles.dayCount, allDone && { color: theme.glow }]}>{count}</Text>
+                      : (
+                        <View style={pStyles.weekDots}>
+                          <View style={pStyles.weekDotsRow}>
+                            {PRAYERS.slice(0, 3).map(p => (
+                              <View key={p.id} style={[pStyles.weekDot, { backgroundColor: dayLog[p.id] ? p.color : 'rgba(255,255,255,0.12)' }]} />
+                            ))}
+                          </View>
+                          <View style={pStyles.weekDotsRow}>
+                            {PRAYERS.slice(3).map(p => (
+                              <View key={p.id} style={[pStyles.weekDot, { backgroundColor: dayLog[p.id] ? p.color : 'rgba(255,255,255,0.12)' }]} />
+                            ))}
+                          </View>
+                        </View>
+                      )
                     }
                   </View>
                 </View>
@@ -176,10 +189,10 @@ function HistorySection({ logs, todayLog, today, theme }) {
                         isFuture && { opacity: 0.2 },
                       ]}>{cell.d}</Text>
                     </View>
-                    {!isFuture && count > 0 && count < 5 && (
+                    {!isFuture && (
                       <View style={pStyles.monthMiniDots}>
-                        {PRAYERS.filter(p => dayLog[p.id]).map((p, di) => (
-                          <View key={di} style={[pStyles.monthMiniDot, { backgroundColor: p.color }]} />
+                        {PRAYERS.map(p => (
+                          <View key={p.id} style={[pStyles.monthMiniDot, { backgroundColor: dayLog[p.id] ? p.color : 'rgba(255,255,255,0.1)' }]} />
                         ))}
                       </View>
                     )}
@@ -412,7 +425,12 @@ function AddChildModal({ visible, onClose, onSaved }) {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
 
-  // Find the newly created child by tracked ID
+  // Local state for setup step — no Firestore write until "Set Up Rewards" is pressed
+  const [localName, setLocalName] = useState('');
+  const [localAvatar, setLocalAvatar] = useState(AVATARS[0]);
+  const [localGender, setLocalGender] = useState('');
+
+  // Find the newly created child by tracked ID (only exists after setup is confirmed)
   const child = newChildId
     ? state.children.find(c => c.id === newChildId)
     : null;
@@ -422,17 +440,36 @@ function AddChildModal({ visible, onClose, onSaved }) {
       setStep('setup');
       setNewChildId(null);
       setCreateError('');
-      setCreating(true);
-      addChild().then(id => {
-        setCreating(false);
-        if (id) {
-          setNewChildId(id);
-        } else {
-          setCreateError('Could not create child. Please sign in and try again.');
-        }
-      });
+      setCreating(false);
+      setLocalName('');
+      setLocalAvatar(AVATARS[0]);
+      setLocalGender('');
     }
   }, [visible]);
+
+  // Called when "Set Up Rewards →" is pressed — creates child for the first time
+  const handleSetupNext = async () => {
+    if (newChildId) { setStep('rewards'); return; }
+    setCreating(true);
+    const id = await addChild();
+    if (!id) {
+      setCreating(false);
+      setCreateError('Could not create child. Please sign in and try again.');
+      return;
+    }
+    await updateChild(id, { name: localName.trim(), avatar: localAvatar, gender: localGender });
+    setNewChildId(id);
+    setCreating(false);
+    setStep('rewards');
+  };
+
+  // Setup values: local before creation, Firestore-backed after (if user goes back)
+  const setupName = newChildId ? (child?.name ?? '') : localName;
+  const setupAvatar = newChildId ? (child?.avatar ?? AVATARS[0]) : localAvatar;
+  const setupGender = newChildId ? (child?.gender ?? '') : localGender;
+  const setSetupName = newChildId ? (v => updateChild(newChildId, { name: v })) : setLocalName;
+  const setSetupAvatar = newChildId ? (av => updateChild(newChildId, { avatar: av })) : setLocalAvatar;
+  const setSetupGender = newChildId ? (g => updateChild(newChildId, { gender: g })) : setLocalGender;
 
   const handleDone = () => {
     onClose();
@@ -468,18 +505,22 @@ function AddChildModal({ visible, onClose, onSaved }) {
 
   if (!visible) return null;
 
-  const sheetHeight = (creating || (!child && !createError) || createError)
+  const sheetHeight = (creating || createError)
     ? { height: '50%' }
     : step === 'rewards' ? { height: '88%' } : { maxHeight: '80%' };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
       <View style={pStyles.overlay}>
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[pStyles.sheet, sheetHeight]}>
           <View style={pStyles.handle} />
 
-          {(creating || (!child && !createError)) ? (
+          {creating ? (
             <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
               <ActivityIndicator size="large" color="#818cf8" />
               <Text style={{ color: 'rgba(255,255,255,0.4)', marginTop: 16, fontSize: 14 }}>Setting up profile…</Text>
@@ -491,7 +532,7 @@ function AddChildModal({ visible, onClose, onSaved }) {
                 <Text style={{ color: '#818cf8', fontWeight: '700' }}>Close</Text>
               </TouchableOpacity>
             </View>
-          ) : step === 'setup' && child ? (
+          ) : step === 'setup' ? (
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={pStyles.childName}>New Child Setup</Text>
               <Text style={[pStyles.sectionLabel, { marginBottom: 10, marginTop: 4 }]}>AVATAR</Text>
@@ -499,8 +540,8 @@ function AddChildModal({ visible, onClose, onSaved }) {
                 {AVATARS.map(av => (
                   <TouchableOpacity
                     key={av}
-                    onPress={() => updateChild(child.id, { avatar: av })}
-                    style={[addStyles.avatarBtn, child.avatar === av && addStyles.avatarBtnSel]}
+                    onPress={() => setSetupAvatar(av)}
+                    style={[addStyles.avatarBtn, setupAvatar === av && addStyles.avatarBtnSel]}
                   >
                     <Text style={{ fontSize: 22 }}>{av}</Text>
                   </TouchableOpacity>
@@ -509,8 +550,8 @@ function AddChildModal({ visible, onClose, onSaved }) {
 
               <Text style={[pStyles.sectionLabel, { marginBottom: 8 }]}>NAME</Text>
               <TextInput
-                value={child.name}
-                onChangeText={v => updateChild(child.id, { name: v })}
+                value={setupName}
+                onChangeText={setSetupName}
                 placeholder="e.g. Youssef"
                 placeholderTextColor="rgba(255,255,255,0.25)"
                 style={addStyles.nameInput}
@@ -521,8 +562,8 @@ function AddChildModal({ visible, onClose, onSaved }) {
                 {['boy', 'girl'].map(g => (
                   <TouchableOpacity
                     key={g}
-                    onPress={() => updateChild(child.id, { gender: g })}
-                    style={[addStyles.genderBtn, child.gender === g && addStyles.genderBtnSel]}
+                    onPress={() => setSetupGender(g)}
+                    style={[addStyles.genderBtn, setupGender === g && addStyles.genderBtnSel]}
                   >
                     <Text style={{ color: COLORS.white, fontSize: 14, fontWeight: '700' }}>
                       {g === 'boy' ? '👦 Boy' : '👧 Girl'}
@@ -532,9 +573,9 @@ function AddChildModal({ visible, onClose, onSaved }) {
               </View>
 
               <TouchableOpacity
-                onPress={() => setStep('rewards')}
-                disabled={child.name.trim().length < 2}
-                style={[addStyles.addBtn, child.name.trim().length < 2 && { opacity: 0.4 }]}
+                onPress={handleSetupNext}
+                disabled={setupName.trim().length < 2}
+                style={[addStyles.addBtn, setupName.trim().length < 2 && { opacity: 0.4 }]}
               >
                 <LinearGradient colors={['#818cf8', '#c084fc']} style={addStyles.addBtnGrad}>
                   <Text style={addStyles.addBtnText}>Set Up Rewards →</Text>
@@ -642,6 +683,7 @@ function AddChildModal({ visible, onClose, onSaved }) {
           ) : null}
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -656,10 +698,10 @@ function ChildProfileModal({ visible, onClose, childId, theme }) {
 
   const log = getTodayLog(child.id);
   const streak = getStreak(child.id);
-  const points = getPoints(child.id);
   const logs = state.prayerLogs[child.id] || {};
   const today = todayKey();
   const completeDays = Object.values(logs).filter(day => PRAYERS.every(p => day[p.id])).length;
+  const awardsEarned = child.rewards.filter(r => completeDays >= r.days).length;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -676,14 +718,11 @@ function ChildProfileModal({ visible, onClose, childId, theme }) {
             <View style={{ flex: 1 }}>
               <Text style={pStyles.childName}>{child.name}</Text>
               <View style={pStyles.chips}>
-                <View style={[pStyles.chip, { borderColor: theme.glow + '50', backgroundColor: theme.glow + '15' }]}>
-                  <Text style={[pStyles.chipText, { color: theme.glow }]}>🔥 {streak} streak</Text>
-                </View>
-                <View style={pStyles.chip}>
-                  <Text style={pStyles.chipText}>⭐ {points} pts</Text>
-                </View>
                 <View style={pStyles.chip}>
                   <Text style={pStyles.chipText}>✓ {completeDays}d</Text>
+                </View>
+                <View style={pStyles.chip}>
+                  <Text style={pStyles.chipText}>🏆 {awardsEarned}</Text>
                 </View>
               </View>
             </View>
@@ -744,48 +783,69 @@ function ChildProfileModal({ visible, onClose, childId, theme }) {
   );
 }
 
-// ─── Child Row ─────────────────────────────────────────────────────────────────
-function ChildRow({ child, theme, log, streak, onPress, onShare }) {
+// ─── Child Card ────────────────────────────────────────────────────────────────
+function ChildRow({ child, theme, log, streak, completeDays, onPress, onShare, onTogglePrayer }) {
   const done = PRAYERS.filter(p => log[p.id]).length;
-  const allDone = done === 5;
+  const awardsEarned = child.rewards.filter(r => completeDays >= r.days).length;
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.82} style={styles.childRow}>
-      <LinearGradient colors={theme.grad} style={styles.rowAvatar}>
-        <Text style={{ fontSize: 22 }}>{child.avatar}</Text>
-      </LinearGradient>
-      <View style={{ flex: 1, gap: 6 }}>
-        <Text style={styles.rowName}>{child.name}</Text>
-        <View style={styles.dotsRow}>
-          {PRAYERS.map(p => (
-            <View key={p.id} style={[styles.dot, log[p.id] && { backgroundColor: p.color }]} />
-          ))}
-          <Text style={styles.dotFraction}>{done} / 5</Text>
-        </View>
-      </View>
-      <View style={styles.rowRight}>
-        {allDone ? (
-          <View style={[styles.doneBadge, { borderColor: theme.glow + '60', backgroundColor: theme.glow + '15' }]}>
-            <Text style={[styles.doneBadgeText, { color: theme.glow }]}>✓ Done</Text>
-          </View>
-        ) : (
-          <View style={styles.streakBadge}>
-            <Text style={styles.streakText}>🔥 {streak}</Text>
-          </View>
-        )}
-        {/* Share / Invite button */}
+    <TouchableOpacity onPress={onPress} activeOpacity={0.82} style={styles.childCard}>
+      {/* Header row */}
+      <View style={styles.childCardHeader}>
+        <LinearGradient colors={theme.grad} style={styles.rowAvatar}>
+          <Text style={{ fontSize: 22 }}>{child.avatar}</Text>
+        </LinearGradient>
+        <Text style={styles.rowName}>{child.name || 'Unnamed'}</Text>
+        <View style={{ flex: 1 }} />
         <TouchableOpacity onPress={onShare} style={styles.shareBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={styles.shareBtnText}>↑</Text>
+          <Text style={styles.shareBtnText}>Invite</Text>
         </TouchableOpacity>
-        <Text style={styles.chevron}>›</Text>
+      </View>
+
+      {/* Prayer emoji row */}
+      <View style={styles.prayerRow}>
+        {PRAYERS.map(p => (
+          <TouchableOpacity
+            key={p.id}
+            style={styles.prayerItem}
+            onPress={() => onTogglePrayer(p.id)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          >
+            <View style={[
+              styles.prayerEmojiBox,
+              log[p.id]
+                ? { backgroundColor: p.color + '25', borderColor: p.color + '80' }
+                : { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' },
+            ]}>
+              <Text style={[styles.prayerEmoji, { opacity: log[p.id] ? 1 : 0.3 }]}>{p.emoji}</Text>
+            </View>
+            <Text style={[styles.prayerLabel, { color: log[p.id] ? p.color : 'rgba(255,255,255,0.3)' }]}>
+              {p.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Stats row */}
+      <View style={styles.cardStatsRow}>
+        <View style={styles.cardStat}>
+          <Text style={styles.cardStatValue}>{completeDays}</Text>
+          <Text style={styles.cardStatLabel}>full days</Text>
+        </View>
+        <View style={styles.cardStatDivider} />
+        <View style={styles.cardStat}>
+          <Text style={styles.cardStatValue}>{awardsEarned}</Text>
+          <Text style={styles.cardStatLabel}>awards</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
 }
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
-export default function ParentDashboard() {
+export default function ParentDashboard({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { state, parentData, getTodayLog, getStreak } = useApp();
+  const { state, parentData, getTodayLog, getStreak, getCompleteDays, togglePrayer } = useApp();
   const { children } = state;
   const greeting = getGreeting();
   const [selectedChild, setSelectedChild] = useState(null);
@@ -815,54 +875,12 @@ export default function ParentDashboard() {
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </Text>
           </View>
-          <LinearGradient colors={['#818cf8', '#c084fc']} style={styles.parentAvatar}>
-            <Text style={styles.parentAvatarText}>{(parentData?.name || 'P')[0].toUpperCase()}</Text>
-          </LinearGradient>
         </View>
-
-        {/* Daily Progress Card */}
-        {children.length > 0 && (
-          <View style={styles.progressCard}>
-            <View style={styles.progressTop}>
-              <View>
-                <Text style={styles.progressLabel}>FAMILY TODAY</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginTop: 2 }}>
-                  <Text style={styles.progressBig}>{totalDone}</Text>
-                  <Text style={styles.progressOf}>/ {totalMax} prayers</Text>
-                </View>
-              </View>
-              <View style={styles.pctCircle}>
-                <Text style={styles.pctText}>{pct}%</Text>
-              </View>
-            </View>
-            <View style={styles.barBg}>
-              <LinearGradient
-                colors={['#818cf8', '#34d399']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={[styles.barFill, { width: `${pct}%` }]}
-              />
-            </View>
-            <View style={styles.breakdown}>
-              {prayerTotals.map(p => (
-                <View key={p.id} style={styles.breakItem}>
-                  <Text style={styles.breakEmoji}>{p.emoji}</Text>
-                  <Text style={[
-                    styles.breakCount,
-                    { color: p.done === children.length && children.length > 0 ? p.color : 'rgba(255,255,255,0.3)' },
-                  ]}>
-                    {p.done}/{children.length}
-                  </Text>
-                  <Text style={styles.breakName}>{p.name}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
 
         {/* Children List */}
         {children.length > 0 && (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={styles.sectionLabel}>YOUR CHILDREN</Text>
+            <Text style={styles.sectionLabel}>TODAY'S PROGRESS</Text>
             <TouchableOpacity onPress={() => setShowAddChild(true)} style={styles.addChildBtn}>
               <Text style={styles.addChildBtnText}>+ Add Child</Text>
             </TouchableOpacity>
@@ -877,8 +895,10 @@ export default function ParentDashboard() {
               theme={theme}
               log={getTodayLog(child.id)}
               streak={getStreak(child.id)}
+              completeDays={getCompleteDays(child.id)}
               onPress={() => setSelectedChild({ childId: child.id, theme, index: i })}
               onShare={() => setInviteChild(child)}
+              onTogglePrayer={(prayerId) => togglePrayer(child.id, prayerId)}
             />
           );
         }) : (
@@ -908,6 +928,7 @@ export default function ParentDashboard() {
           onPress={async () => {
             await signOut(auth);
             await AsyncStorage.removeItem('@pq/mode');
+            navigation.replace('ModeSelect');
           }}
         >
           <Text style={styles.signOutText}>Sign Out</Text>
@@ -1006,22 +1027,18 @@ const styles = StyleSheet.create({
   },
   addChildBtnText: { color: COLORS.purple, fontSize: 12, fontWeight: '800' },
 
-  childRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
+  childCard: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 18, padding: 14,
+    borderRadius: 20, padding: 16, gap: 14,
   },
+  childCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowAvatar: {
-    width: 48, height: 48, borderRadius: 24,
+    width: 44, height: 44, borderRadius: 22,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.15)',
   },
-  rowName: { color: COLORS.white, fontSize: 16, fontWeight: '900' },
-  dotsRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.1)' },
-  dotFraction: { color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: '800', marginLeft: 4 },
-  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rowName: { color: COLORS.white, fontSize: 17, fontWeight: '900' },
   doneBadge: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
   doneBadgeText: { fontSize: 11, fontWeight: '900' },
   streakBadge: {
@@ -1029,7 +1046,26 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)', borderRadius: 100, paddingHorizontal: 10, paddingVertical: 4,
   },
   streakText: { color: COLORS.white, fontSize: 12, fontWeight: '800' },
-  chevron: { color: 'rgba(255,255,255,0.2)', fontSize: 22, fontWeight: '300' },
+  prayerRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  prayerItem: { alignItems: 'center', gap: 5, flex: 1 },
+  prayerEmojiBox: {
+    width: 44, height: 44, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5,
+  },
+  prayerEmoji: { fontSize: 22 },
+  prayerLabel: { fontSize: 10, fontWeight: '700' },
+
+  cardStatsRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    marginTop: 12, paddingTop: 10,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)',
+    gap: 24,
+  },
+  cardStat: { alignItems: 'center', gap: 2 },
+  cardStatValue: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
+  cardStatLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 },
+  cardStatDivider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.1)' },
 
   quoteCard: {
     backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1,
@@ -1040,12 +1076,12 @@ const styles = StyleSheet.create({
   quoteSource: { color: 'rgba(255,255,255,0.2)', fontSize: 11, fontWeight: '700' },
 
   shareBtn: {
-    width: 28, height: 28, borderRadius: 14,
+    height: 28, borderRadius: 14, paddingHorizontal: 12,
     backgroundColor: 'rgba(129,140,248,0.12)',
     borderWidth: 1, borderColor: 'rgba(129,140,248,0.3)',
     alignItems: 'center', justifyContent: 'center',
   },
-  shareBtnText: { color: '#818cf8', fontSize: 14, fontWeight: '900' },
+  shareBtnText: { color: '#818cf8', fontSize: 12, fontWeight: '800' },
 
   signOutBtn: {
     alignSelf: 'center', marginTop: 8,
@@ -1106,6 +1142,9 @@ const pStyles = StyleSheet.create({
   dayLetter: { color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: '800' },
   dayCircle: { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   dayCount: { color: 'rgba(255,255,255,0.45)', fontSize: 13, fontWeight: '900' },
+  weekDots: { gap: 3, alignItems: 'center' },
+  weekDotsRow: { flexDirection: 'row', gap: 3 },
+  weekDot: { width: 6, height: 6, borderRadius: 3 },
   futureDash: { color: 'rgba(255,255,255,0.1)', fontSize: 12 },
 
   // Month tab

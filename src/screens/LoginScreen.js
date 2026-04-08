@@ -49,7 +49,8 @@ export default function LoginScreen({ navigation }) {
     setError('');
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      // App.js onAuthStateChanged will navigate to ParentDashboard
+      await AsyncStorage.setItem('@pq/mode', 'parent');
+      navigation.replace('ParentDashboard');
     } catch (e) {
       const msg = e.code === 'auth/invalid-credential'
         ? 'Wrong email or password.'
