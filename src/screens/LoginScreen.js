@@ -9,6 +9,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../config/firebase';
 import { AppTextInput, PrimaryBtn, GhostBtn } from '../components/UI';
+import { signInWithApple } from '../utils/appleAuth';
 
 function SocialBtn({ label, icon, onPress }) {
   return (
@@ -41,6 +42,22 @@ export default function LoginScreen({ navigation }) {
   const handleSocialLogin = async () => {
     await AsyncStorage.setItem('@pq/mode', 'parent');
     navigation.replace('ParentDashboard');
+  };
+
+  const handleAppleLogin = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithApple();
+      navigation.replace('ParentDashboard');
+    } catch (e) {
+      if (e.code !== 'ERR_REQUEST_CANCELED') {
+        setError('Apple sign-in failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = async () => {
@@ -80,7 +97,9 @@ export default function LoginScreen({ navigation }) {
 
               <View style={styles.socialRow}>
                 <SocialBtn label="Google" icon="G" onPress={handleSocialLogin} />
-                <SocialBtn label="Apple" icon="" onPress={handleSocialLogin} />
+                {Platform.OS === 'ios' && (
+                  <SocialBtn label="Apple" icon="" onPress={handleAppleLogin} />
+                )}
               </View>
               <OrDivider />
 
