@@ -45,12 +45,12 @@ export default function LoginScreen({ navigation }) {
     setError('');
     try {
       await signInWithGoogle();
-      navigation.replace('ParentDashboard');
+      // App.js onAuthStateChanged → setStatus('parent') → navigator switches automatically.
+      // Keep loading=true so spinner shows until this screen unmounts.
     } catch (e) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
         setError('Google sign-in failed. Please try again.');
       }
-    } finally {
       setLoading(false);
     }
   };
@@ -61,7 +61,7 @@ export default function LoginScreen({ navigation }) {
     setError('');
     try {
       await signInWithApple();
-      navigation.replace('ParentDashboard');
+      // App.js onAuthStateChanged → setStatus('parent') → navigator switches automatically.
     } catch (e) {
       if (e.code === 'ERR_REQUEST_CANCELED') {
         // user dismissed the sheet — no error to show
@@ -70,7 +70,6 @@ export default function LoginScreen({ navigation }) {
       } else {
         setError('Apple sign-in failed. Please try again.');
       }
-    } finally {
       setLoading(false);
     }
   };
@@ -81,8 +80,8 @@ export default function LoginScreen({ navigation }) {
     setError('');
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      await AsyncStorage.setItem('@pq/mode', 'parent');
-      navigation.replace('ParentDashboard');
+      // App.js onAuthStateChanged → setStatus('parent') → navigator switches automatically.
+      // Keep loading=true so spinner shows until this screen unmounts.
     } catch (e) {
       const msg = e.code === 'auth/invalid-credential'
         ? 'Wrong email or password.'
@@ -90,7 +89,6 @@ export default function LoginScreen({ navigation }) {
         ? 'No account found with that email.'
         : 'Login failed. Please try again.';
       setError(msg);
-    } finally {
       setLoading(false);
     }
   };

@@ -22,19 +22,11 @@ import HomeScreen        from './src/screens/HomeScreen';
 
 const Stack = createNativeStackNavigator();
 
-// ─── Initial route resolver ───────────────────────────────────────────────────
-async function resolveInitialRoute() {
-  const mode = await AsyncStorage.getItem('@pq/mode');
-  if (mode === 'child') {
-    const childId = await AsyncStorage.getItem('@pq/childId');
-    return childId ? { route: 'KidHome', params: { childId } } : { route: 'ChildJoin' };
-  }
-  if (mode === 'parent') {
-    const user = auth.currentUser;
-    return user ? { route: 'ParentDashboard' } : { route: 'Login' };
-  }
-  return { route: 'ModeSelect' };
-}
+// ─── Auth states ──────────────────────────────────────────────────────────────
+// 'loading' → waiting for Firebase to restore session
+// 'parent'  → Firebase user is signed in
+// 'child'   → no Firebase user, but child session in AsyncStorage
+// 'none'    → not authenticated at all
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -44,18 +36,38 @@ export default function App() {
     Nunito_900Black,
   });
 
-  const [initialRoute, setInitialRoute] = useState(null); // null = loading
+  const [status, setStatus] = useState('loading');
+  const [savedChildId, setSavedChildId] = useState(null);
 
   useEffect(() => {
-    // Wait for Firebase Auth to restore session, then decide initial route
-    const unsubscribe = onAuthStateChanged(auth, async () => {
-      const dest = await resolveInitialRoute();
-      setInitialRoute(dest);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // ── Parent signed in ─────────────────────────────────────────────────
+        // Always persist mode so app restarts land on ParentDashboard
+        await AsyncStorage.setItem('@pq/mode', 'parent');
+        setStatus('parent');
+      } else {
+        // ── No Firebase user — check for persisted child session ─────────────
+        const [mode, childId] = await Promise.all([
+          AsyncStorage.getItem('@pq/mode'),
+          AsyncStorage.getItem('@pq/childId'),
+        ]);
+
+        if (mode === 'child' && childId) {
+          setSavedChildId(childId);
+          setStatus('child');
+        } else {
+          // Clear any stale parent mode flag left from a previous session
+          if (mode === 'parent') await AsyncStorage.removeItem('@pq/mode');
+          setStatus('none');
+        }
+      }
     });
     return unsubscribe;
   }, []);
 
-  if (!fontsLoaded || !initialRoute) {
+  // ── Splash / loading ────────────────────────────────────────────────────────
+  if (!fontsLoaded || status === 'loading') {
     return (
       <View style={{ flex: 1, backgroundColor: '#0d0d1a', alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color="#818cf8" size="large" />
@@ -68,24 +80,51 @@ export default function App() {
       <SafeAreaProvider>
         <NavigationContainer>
           <StatusBar style="light" />
+
+          {/*
+           * React Navigation's conditional-screens pattern:
+           * Switching which screens are defined causes the navigator to
+           * automatically transition to the first screen of the new group.
+           * This drives ALL auth-state-driven navigation (login, logout,
+           * child join, child sign-out) without any manual navigation calls.
+           */}
           <Stack.Navigator
-            initialRouteName={initialRoute.route}
             screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
           >
-            <Stack.Screen name="ModeSelect"      component={ModeSelectScreen} />
-            <Stack.Screen name="Signup"          component={SignupScreen} />
-            <Stack.Screen name="Login"           component={LoginScreen} />
-            <Stack.Screen name="ChildJoin"       component={ChildJoinScreen} />
-            <Stack.Screen
-              name="ParentDashboard"
-              component={ParentDashboard}
-              options={{ gestureEnabled: false }}
-            />
-            <Stack.Screen
-              name="KidHome"
-              component={HomeScreen}
-              initialParams={initialRoute.route === 'KidHome' ? initialRoute.params : undefined}
-            />
+            {status === 'parent' ? (
+              // ── Parent (signed-in) ─────────────────────────────────────────
+              <>
+                <Stack.Screen
+                  name="ParentDashboard"
+                  component={ParentDashboard}
+                  options={{ gestureEnabled: false }}
+                />
+                <Stack.Screen name="KidHome" component={HomeScreen} />
+              </>
+            ) : status === 'child' ? (
+              // ── Child (logged-in via invite code) ──────────────────────────
+              // All auth screens are included so "sign out" can navigate to
+              // ModeSelect → Login / Signup / ChildJoin without errors.
+              <>
+                <Stack.Screen
+                  name="KidHome"
+                  component={HomeScreen}
+                  initialParams={{ childId: savedChildId }}
+                />
+                <Stack.Screen name="ModeSelect" component={ModeSelectScreen} />
+                <Stack.Screen name="Signup"     component={SignupScreen} />
+                <Stack.Screen name="Login"      component={LoginScreen} />
+                <Stack.Screen name="ChildJoin"  component={ChildJoinScreen} />
+              </>
+            ) : (
+              // ── Logged-out / mode-select ───────────────────────────────────
+              <>
+                <Stack.Screen name="ModeSelect" component={ModeSelectScreen} />
+                <Stack.Screen name="Signup"     component={SignupScreen} />
+                <Stack.Screen name="Login"      component={LoginScreen} />
+                <Stack.Screen name="ChildJoin"  component={ChildJoinScreen} />
+              </>
+            )}
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaProvider>
