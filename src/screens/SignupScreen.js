@@ -7,7 +7,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from '../config/firebase';
 import { AppTextInput, PrimaryBtn, GhostBtn } from '../components/UI';
 import { signInWithApple } from '../utils/appleAuth';
@@ -109,8 +108,8 @@ export default function SignupScreen({ navigation }) {
         email: data.email.trim(),
         createdAt: serverTimestamp(),
       });
-      await AsyncStorage.setItem('@pq/mode', 'parent');
-      navigation?.replace('ParentDashboard');
+      // App.js onAuthStateChanged → setStatus('parent') → navigator switches automatically.
+      // Keep loading=true so spinner shows until this screen unmounts.
     } catch (e) {
       const msg = e.code === 'auth/email-already-in-use'
         ? 'An account with this email already exists.'
@@ -118,7 +117,6 @@ export default function SignupScreen({ navigation }) {
         ? 'Invalid email address.'
         : 'Registration failed. Please try again.';
       setError(msg);
-    } finally {
       setLoading(false);
     }
   };
@@ -129,12 +127,12 @@ export default function SignupScreen({ navigation }) {
     setError('');
     try {
       await signInWithGoogle();
-      navigation?.replace('ParentDashboard');
+      // App.js onAuthStateChanged → setStatus('parent') → navigator switches automatically.
+      // Keep loading=true so spinner shows until this screen unmounts.
     } catch (e) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
         setError('Google sign-in failed. Please try again.');
       }
-    } finally {
       setLoading(false);
     }
   };
@@ -145,7 +143,8 @@ export default function SignupScreen({ navigation }) {
     setError('');
     try {
       await signInWithApple();
-      navigation?.replace('ParentDashboard');
+      // App.js onAuthStateChanged → setStatus('parent') → navigator switches automatically.
+      // Keep loading=true so spinner shows until this screen unmounts.
     } catch (e) {
       if (e.code === 'ERR_REQUEST_CANCELED') {
         // user dismissed the sheet — no error to show
@@ -154,7 +153,6 @@ export default function SignupScreen({ navigation }) {
       } else {
         setError('Apple sign-in failed. Please try again.');
       }
-    } finally {
       setLoading(false);
     }
   };

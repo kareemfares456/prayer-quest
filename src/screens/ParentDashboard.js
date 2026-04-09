@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
 import { signOut } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../config/firebase';
 import { COLORS, PRAYERS, DURATION_OPTIONS, AVATARS } from '../constants';
 import { useApp } from '../context/AppContext';
@@ -927,8 +926,8 @@ export default function ParentDashboard({ navigation }) {
           style={styles.signOutBtn}
           onPress={async () => {
             await signOut(auth);
-            await AsyncStorage.removeItem('@pq/mode');
-            navigation.replace('ModeSelect');
+            // App.js onAuthStateChanged fires with null → clears stale mode →
+            // setStatus('none') → navigator automatically shows ModeSelect.
           }}
         >
           <Text style={styles.signOutText}>Sign Out</Text>

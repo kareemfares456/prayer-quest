@@ -8,9 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { COLORS, PRAYERS } from '../constants';
 import { useApp } from '../context/AppContext';
-import { signOut } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { auth } from '../config/firebase';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -553,8 +551,12 @@ export default function HomeScreen({ navigation, route }) {
         <TouchableOpacity
           style={hStyles.signOutBtn}
           onPress={async () => {
-            await signOut(auth);
-            await AsyncStorage.removeItem('@pq/mode');
+            // Child has no Firebase session — just clear persisted child state
+            // and navigate to ModeSelect (which is registered in the child screen group).
+            await Promise.all([
+              AsyncStorage.removeItem('@pq/mode'),
+              AsyncStorage.removeItem('@pq/childId'),
+            ]);
             navigation.replace('ModeSelect');
           }}
         >
