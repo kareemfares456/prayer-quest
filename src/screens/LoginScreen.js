@@ -6,10 +6,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '../config/firebase';
 import { AppTextInput, PrimaryBtn, GhostBtn } from '../components/UI';
 import { signInWithApple } from '../utils/appleAuth';
+import { signInWithGoogle } from '../utils/googleAuth';
 
 function SocialBtn({ label, icon, onPress }) {
   return (
@@ -39,9 +39,20 @@ export default function LoginScreen({ navigation }) {
 
   const valid = email.includes('@') && password.length >= 6;
 
-  const handleSocialLogin = async () => {
-    await AsyncStorage.setItem('@pq/mode', 'parent');
-    navigation.replace('ParentDashboard');
+  const handleGoogleLogin = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithGoogle();
+      navigation.replace('ParentDashboard');
+    } catch (e) {
+      if (e.code !== 'ERR_REQUEST_CANCELED') {
+        setError('Google sign-in failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAppleLogin = async () => {
@@ -100,7 +111,7 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.sub}>Sign in to your parent account</Text>
 
               <View style={styles.socialRow}>
-                <SocialBtn label="Google" icon="G" onPress={handleSocialLogin} />
+                <SocialBtn label="Google" icon="G" onPress={handleGoogleLogin} />
                 {Platform.OS === 'ios' && (
                   <SocialBtn label="Apple" icon="" onPress={handleAppleLogin} />
                 )}

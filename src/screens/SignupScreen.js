@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from '../config/firebase';
 import { AppTextInput, PrimaryBtn, GhostBtn } from '../components/UI';
 import { signInWithApple } from '../utils/appleAuth';
+import { signInWithGoogle } from '../utils/googleAuth';
 
 // ─── Social Buttons ────────────────────────────────────────────────────────────
 function SocialBtn({ label, icon, onPress }) {
@@ -120,9 +121,20 @@ export default function SignupScreen({ navigation }) {
     }
   };
 
-  const handleSocial = async () => {
-    await AsyncStorage.setItem('@pq/mode', 'parent');
-    navigation?.replace('ParentDashboard');
+  const handleGoogle = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithGoogle();
+      navigation?.replace('ParentDashboard');
+    } catch (e) {
+      if (e.code !== 'ERR_REQUEST_CANCELED') {
+        setError('Google sign-in failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleApple = async () => {
@@ -146,13 +158,13 @@ export default function SignupScreen({ navigation }) {
   };
 
   const steps = [
-    <StepWelcome onNext={() => setStep(1)} onGoogle={handleSocial} onApple={handleApple} error={error} />,
+    <StepWelcome onNext={() => setStep(1)} onGoogle={handleGoogle} onApple={handleApple} error={error} />,
     <StepParent
       data={parent}
       onChange={updateParent}
       onNext={() => handleComplete()}
       onBack={() => setStep(0)}
-      onGoogle={handleSocial}
+      onGoogle={handleGoogle}
       onApple={handleApple}
       loading={loading}
       error={error}
