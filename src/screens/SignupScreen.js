@@ -45,7 +45,7 @@ function OrDivider() {
 }
 
 // ─── Step 0: Welcome ──────────────────────────────────────────────────────────
-function StepWelcome({ onNext, onGoogle, onApple, error }) {
+function StepWelcome({ onNext, onGoogle, onApple, error, onLogin }) {
   return (
     <View style={styles.stepContainer}>
       <Text style={styles.welcomeEmoji}>🕌</Text>
@@ -57,7 +57,9 @@ function StepWelcome({ onNext, onGoogle, onApple, error }) {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <OrDivider />
       <PrimaryBtn onPress={onNext}>Continue with Email →</PrimaryBtn>
-      <Text style={styles.welcomeHint}>Takes less than a minute to set up</Text>
+      <TouchableOpacity onPress={onLogin} style={styles.loginLink} activeOpacity={0.7}>
+        <Text style={styles.loginLinkText}>Already have an account? <Text style={styles.loginLinkAccent}>Sign in</Text></Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -108,7 +110,7 @@ export default function SignupScreen({ navigation }) {
         createdAt: serverTimestamp(),
       });
       await AsyncStorage.setItem('@pq/mode', 'parent');
-      navigation?.navigate('ParentDashboard');
+      navigation?.replace('ParentDashboard');
     } catch (e) {
       const msg = e.code === 'auth/email-already-in-use'
         ? 'An account with this email already exists.'
@@ -158,7 +160,7 @@ export default function SignupScreen({ navigation }) {
   };
 
   const steps = [
-    <StepWelcome onNext={() => setStep(1)} onGoogle={handleGoogle} onApple={handleApple} error={error} />,
+    <StepWelcome onNext={() => setStep(1)} onGoogle={handleGoogle} onApple={handleApple} error={error} onLogin={() => navigation?.navigate('Login')} />,
     <StepParent
       data={parent}
       onChange={updateParent}
@@ -238,5 +240,7 @@ const styles = StyleSheet.create({
   welcomeEmoji: { fontSize: 64, textAlign: 'center', marginBottom: 20 },
   welcomeTitle: { color: '#ffffff', fontSize: 26, fontWeight: '900', textAlign: 'center', lineHeight: 34, marginBottom: 12 },
   welcomeSub: { color: 'rgba(255,255,255,0.45)', fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
-  welcomeHint: { color: 'rgba(255,255,255,0.2)', fontSize: 11, textAlign: 'center', marginTop: 12 },
+  loginLink: { alignItems: 'center', marginTop: 16, paddingVertical: 4 },
+  loginLinkText: { color: 'rgba(255,255,255,0.35)', fontSize: 13 },
+  loginLinkAccent: { color: '#818cf8', fontWeight: '700' },
 });
