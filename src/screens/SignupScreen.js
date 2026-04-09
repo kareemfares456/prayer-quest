@@ -44,7 +44,7 @@ function OrDivider() {
 }
 
 // ─── Step 0: Welcome ──────────────────────────────────────────────────────────
-function StepWelcome({ onNext, onGoogle, onApple }) {
+function StepWelcome({ onNext, onGoogle, onApple, error }) {
   return (
     <View style={styles.stepContainer}>
       <Text style={styles.welcomeEmoji}>🕌</Text>
@@ -53,6 +53,7 @@ function StepWelcome({ onNext, onGoogle, onApple }) {
         Help your children build a beautiful habit of daily prayer — with streaks, custom rewards, and real encouragement.
       </Text>
       <SocialRow onGoogle={onGoogle} onApple={onApple} />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
       <OrDivider />
       <PrimaryBtn onPress={onNext}>Continue with Email →</PrimaryBtn>
       <Text style={styles.welcomeHint}>Takes less than a minute to set up</Text>
@@ -132,7 +133,11 @@ export default function SignupScreen({ navigation }) {
       await signInWithApple();
       navigation?.replace('ParentDashboard');
     } catch (e) {
-      if (e.code !== 'ERR_REQUEST_CANCELED') {
+      if (e.code === 'ERR_REQUEST_CANCELED') {
+        // user dismissed the sheet — no error to show
+      } else if (e.code === 'ERR_APPLE_UNAVAILABLE') {
+        setError('Sign in with Apple is not available. Please sign into an Apple ID in Settings.');
+      } else {
         setError('Apple sign-in failed. Please try again.');
       }
     } finally {
@@ -141,7 +146,7 @@ export default function SignupScreen({ navigation }) {
   };
 
   const steps = [
-    <StepWelcome onNext={() => setStep(1)} onGoogle={handleSocial} onApple={handleApple} />,
+    <StepWelcome onNext={() => setStep(1)} onGoogle={handleSocial} onApple={handleApple} error={error} />,
     <StepParent
       data={parent}
       onChange={updateParent}

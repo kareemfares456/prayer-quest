@@ -14,8 +14,16 @@ function randomNonce(length = 32) {
 /**
  * Signs in (or up) with Apple and creates/merges the Firestore user doc.
  * Throws if the user cancels (error.code === 'ERR_REQUEST_CANCELED').
+ * Throws with code 'ERR_APPLE_UNAVAILABLE' if Apple Sign In isn't available.
  */
 export async function signInWithApple() {
+  const available = await AppleAuthentication.isAvailableAsync();
+  if (!available) {
+    const err = new Error('Sign in with Apple is not available. Make sure you are signed into an Apple ID in device Settings.');
+    err.code = 'ERR_APPLE_UNAVAILABLE';
+    throw err;
+  }
+
   const rawNonce = randomNonce();
   const hashedNonce = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,

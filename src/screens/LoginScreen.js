@@ -52,7 +52,11 @@ export default function LoginScreen({ navigation }) {
       await signInWithApple();
       navigation.replace('ParentDashboard');
     } catch (e) {
-      if (e.code !== 'ERR_REQUEST_CANCELED') {
+      if (e.code === 'ERR_REQUEST_CANCELED') {
+        // user dismissed the sheet — no error to show
+      } else if (e.code === 'ERR_APPLE_UNAVAILABLE') {
+        setError('Sign in with Apple is not available. Please sign into an Apple ID in Settings.');
+      } else {
         setError('Apple sign-in failed. Please try again.');
       }
     } finally {
