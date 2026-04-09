@@ -19,6 +19,13 @@
         "NSCameraUsageDescription": "Scan the QR code shown by your parent to join the family."
       }
     },
+    "android": {
+      "package": "com.kfares.prayerquest",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0d0d1a"
+      }
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
