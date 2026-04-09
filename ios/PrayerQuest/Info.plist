@@ -30,6 +30,12 @@
           <string>com.yourname.prayerquest</string>
         </array>
       </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>com.googleusercontent.apps.687789562844-j484s04g077vffhfnuf4hffqqop036q8</string>
+        </array>
+      </dict>
     </array>
     <key>CFBundleVersion</key>
     <string>1</string>
