@@ -2,14 +2,13 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
   KeyboardAvoidingView, Platform, TextInput, ScrollView,
-  DeviceEventEmitter,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { doc, getDoc } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../config/firebase';
+import { useApp } from '../context/AppContext';
 
 // ─── Code Input ───────────────────────────────────────────────────────────────
 function CodeInput({ value, onChange }) {
@@ -77,6 +76,7 @@ function ScanTab({ onCodeScanned }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ChildJoinScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { setChildSession } = useApp();
   const [tab, setTab]     = useState('code'); // 'scan' | 'code'
   const [code, setCode]   = useState('');
   const [loading, setLoading] = useState(false);
@@ -107,12 +107,9 @@ export default function ChildJoinScreen({ navigation }) {
         return;
       }
 
-      await AsyncStorage.setItem('@pq/mode', 'child');
-      await AsyncStorage.setItem('@pq/childId', childId);
-
-      // Notify App.js to switch to 'child' status — this causes the navigator
-      // to re-render with KidHome as the first screen without any manual navigation.
-      DeviceEventEmitter.emit('childModeActivated', { childId });
+      // setChildSession saves to AsyncStorage and updates appStatus to 'child',
+      // which causes AppNavigator to switch to the child screen group automatically.
+      await setChildSession(childId);
     } catch (e) {
       setError('Network error. Check your connection.');
       setLoading(false);

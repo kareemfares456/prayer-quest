@@ -7,6 +7,7 @@ import {
   addDoc, setDoc, updateDoc, deleteDoc, getDoc,
   serverTimestamp, documentId,
 } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from '../config/firebase';
 import { PRAYERS, newChild } from '../constants';
 
@@ -49,12 +50,43 @@ export function AppProvider({ children: nodes }) {
   const [children, setChildren] = useState([]);
   const [prayerLogs, setPrayerLogs] = useState({}); // { childId: { dateStr: { fajr, ... } } }
 
+  // ─── App-level auth status (drives navigator conditional screens) ────────────
+  // 'loading' | 'parent' | 'child' | 'none'
+  const [appStatus, setAppStatus] = useState('loading');
+  const [savedChildId, setSavedChildId] = useState(null);
+
   // Track active Firestore unsubscribers so we can clean them up
   const logUnsubs = useRef([]);
 
   // ─── Auth listener ──────────────────────────────────────────────────────────
   useEffect(() => {
-    return onAuthStateChanged(auth, user => setAuthUser(user ?? null));
+    return onAuthStateChanged(auth, async (user) => {
+      setAuthUser(user ?? null);
+      if (user) {
+        await AsyncStorage.setItem('@pq/mode', 'parent');
+        setAppStatus('parent');
+      } else {
+        const [mode, childId] = await Promise.all([
+          AsyncStorage.getItem('@pq/mode'),
+          AsyncStorage.getItem('@pq/childId'),
+        ]);
+        if (mode === 'child' && childId) {
+          setSavedChildId(childId);
+          setAppStatus('child');
+        } else {
+          if (mode === 'parent') await AsyncStorage.removeItem('@pq/mode');
+          setAppStatus('none');
+        }
+      }
+    });
+  }, []);
+
+  // Called by ChildJoinScreen after verifying an invite code
+  const setChildSession = useCallback(async (childId) => {
+    await AsyncStorage.setItem('@pq/mode', 'child');
+    await AsyncStorage.setItem('@pq/childId', childId);
+    setSavedChildId(childId);
+    setAppStatus('child');
   }, []);
 
   // ─── Parent data listener ───────────────────────────────────────────────────
@@ -191,6 +223,9 @@ export function AppProvider({ children: nodes }) {
   // ─── State exposed ──────────────────────────────────────────────────────────
   const api = useMemo(() => ({
     state: { authUser, parentData, children, prayerLogs },
+    appStatus,
+    savedChildId,
+    setChildSession,
     authUser,
     parentData,
     loadChildById,
@@ -205,6 +240,7 @@ export function AppProvider({ children: nodes }) {
     getCompleteDays,
   }), [
     authUser, parentData, children, prayerLogs,
+    appStatus, savedChildId, setChildSession,
     loadChildById, togglePrayer, addChild,
     updateChild, updateChildRewards, removeChild,
     getTodayLog, getStreak, getPoints, getCompleteDays,
