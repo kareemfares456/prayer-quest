@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -13,11 +14,11 @@ import { signInWithApple } from '../utils/appleAuth';
 import { signInWithGoogle } from '../utils/googleAuth';
 
 // ─── Social Buttons ────────────────────────────────────────────────────────────
-function SocialBtn({ label, icon, onPress }) {
+function GoogleBtn({ onPress }) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.socialBtn}>
-      <Text style={styles.socialIcon}>{icon}</Text>
-      <Text style={styles.socialText}>{label}</Text>
+      <Text style={styles.socialIcon}>G</Text>
+      <Text style={styles.socialText}>Google</Text>
     </TouchableOpacity>
   );
 }
@@ -25,9 +26,15 @@ function SocialBtn({ label, icon, onPress }) {
 function SocialRow({ onGoogle, onApple }) {
   return (
     <View style={styles.socialRow}>
-      <SocialBtn label="Google" icon="G" onPress={onGoogle} />
+      <GoogleBtn onPress={onGoogle} />
       {Platform.OS === 'ios' && (
-        <SocialBtn label="Apple" icon="" onPress={onApple} />
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+          cornerRadius={14}
+          style={styles.appleBtn}
+          onPress={onApple}
+        />
       )}
     </View>
   );
@@ -230,6 +237,7 @@ const styles = StyleSheet.create({
   },
   socialIcon: { fontSize: 16, fontWeight: '900', color: '#1f1f1f' },
   socialText: { color: '#1f1f1f', fontSize: 14, fontWeight: '700' },
+  appleBtn: { flex: 1, height: 46 },
 
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
   orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },

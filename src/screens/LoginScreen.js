@@ -5,17 +5,18 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { AppTextInput, PrimaryBtn, GhostBtn } from '../components/UI';
 import { signInWithApple } from '../utils/appleAuth';
 import { signInWithGoogle } from '../utils/googleAuth';
 
-function SocialBtn({ label, icon, onPress }) {
+function GoogleBtn({ onPress }) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.socialBtn}>
-      <Text style={styles.socialIcon}>{icon}</Text>
-      <Text style={styles.socialText}>{label}</Text>
+      <Text style={styles.socialIcon}>G</Text>
+      <Text style={styles.socialText}>Google</Text>
     </TouchableOpacity>
   );
 }
@@ -46,7 +47,6 @@ export default function LoginScreen({ navigation }) {
     try {
       await signInWithGoogle();
       // App.js onAuthStateChanged → setStatus('parent') → navigator switches automatically.
-      // Keep loading=true so spinner shows until this screen unmounts.
     } catch (e) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
         setError('Google sign-in failed. Please try again.');
@@ -81,7 +81,6 @@ export default function LoginScreen({ navigation }) {
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
       // App.js onAuthStateChanged → setStatus('parent') → navigator switches automatically.
-      // Keep loading=true so spinner shows until this screen unmounts.
     } catch (e) {
       const msg = e.code === 'auth/invalid-credential'
         ? 'Wrong email or password.'
@@ -110,9 +109,15 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.sub}>Sign in to your parent account</Text>
 
               <View style={styles.socialRow}>
-                <SocialBtn label="Google" icon="G" onPress={handleGoogleLogin} />
+                <GoogleBtn onPress={handleGoogleLogin} />
                 {Platform.OS === 'ios' && (
-                  <SocialBtn label="Apple" icon="" onPress={handleAppleLogin} />
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                    cornerRadius={14}
+                    style={styles.appleBtn}
+                    onPress={handleAppleLogin}
+                  />
                 )}
               </View>
               <OrDivider />
@@ -184,6 +189,7 @@ const styles = StyleSheet.create({
   },
   socialIcon: { fontSize: 16, fontWeight: '900', color: '#1f1f1f' },
   socialText: { color: '#1f1f1f', fontSize: 14, fontWeight: '700' },
+  appleBtn: { flex: 1, height: 46 },
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
   orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
   orText: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: '700' },
