@@ -405,7 +405,7 @@ function RewardsJourney({ rewards, completeDays, theme }) {
 // ─── Main Kid Home Screen ─────────────────────────────────────────────────────
 export default function HomeScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { state, savedChildId: contextChildId, clearChildSession, loadChildById, togglePrayer, getTodayLog, getStreak, getCompleteDays } = useApp();
+  const { state, appStatus, savedChildId: contextChildId, clearChildSession, loadChildById, togglePrayer, getTodayLog, getStreak, getCompleteDays } = useApp();
   const { childId: paramChildId } = route.params || {};
   // Fall back to context's savedChildId in case initialParams weren't set yet
   const childId = paramChildId ?? contextChildId;
@@ -548,16 +548,22 @@ export default function HomeScreen({ navigation, route }) {
           </>
         )}
 
-        {/* ─── Sign out ──────────────────────────────────────────── */}
+        {/* ─── Sign out / Back ────────────────────────────────────── */}
         <TouchableOpacity
           style={hStyles.signOutBtn}
           onPress={async () => {
-            // clearChildSession resets appStatus to 'none', which causes the
-            // navigator to switch to the logged-out group (ModeSelect) automatically.
-            await clearChildSession();
+            if (appStatus === 'child') {
+              // clearChildSession resets appStatus to 'none', which causes the
+              // navigator to switch to the logged-out group (ModeSelect) automatically.
+              await clearChildSession();
+            } else {
+              // In parent mode, this screen is pushed onto the parent stack —
+              // just go back to ParentDashboard.
+              navigation.goBack();
+            }
           }}
         >
-          <Text style={hStyles.signOutText}>Sign Out</Text>
+          <Text style={hStyles.signOutText}>{appStatus === 'child' ? 'Sign Out' : '← Back'}</Text>
         </TouchableOpacity>
       </ScrollView>
 

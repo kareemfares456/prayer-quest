@@ -18,13 +18,13 @@ import HomeScreen        from './src/screens/HomeScreen';
 
 const Stack = createNativeStackNavigator();
 
-// ─── Auth states ──────────────────────────────────────────────────────────────
+// Auth states:
 // 'loading' → waiting for Firebase to restore session
 // 'parent'  → Firebase user is signed in
 // 'child'   → no Firebase user, but child session in AsyncStorage
 // 'none'    → not authenticated at all
 
-// ─── Navigator (rendered inside AppProvider so it can read context) ───────────
+// Navigator rendered inside AppProvider so it can read context
 function AppNavigator() {
   const { appStatus, savedChildId } = useApp();
 
@@ -42,13 +42,15 @@ function AppNavigator() {
     >
       {/*
        * React Navigation's conditional-screens pattern:
-       * Switching which screens are defined causes the navigator to
-       * automatically transition to the first screen of the new group.
-       * This drives ALL auth-state-driven navigation (login, logout,
-       * child join, child sign-out) without any manual navigation calls.
+       * When the set of registered screens changes, the navigator automatically
+       * navigates to the first screen of the new group.
+       *
+       * CRITICAL: A screen must NOT appear in two groups if it can be the active
+       * screen during a transition. When 'none' switches to 'child', the user is
+       * on ChildJoin. ChildJoin must be ABSENT from the 'child' group so React
+       * Navigation removes it from the stack and shows KidHome instead.
        */}
       {appStatus === 'parent' ? (
-        // ── Parent (signed-in) ───────────────────────────────────────────────
         <>
           <Stack.Screen
             name="ParentDashboard"
@@ -58,22 +60,19 @@ function AppNavigator() {
           <Stack.Screen name="KidHome" component={HomeScreen} />
         </>
       ) : appStatus === 'child' ? (
-        // ── Child (logged-in via invite code) ─────────────────────────────────
-        // All auth screens are included so "sign out" can navigate to
-        // ModeSelect → Login / Signup / ChildJoin without errors.
+        // Only KidHome here — no ChildJoin, ModeSelect, etc.
+        // Absence of ChildJoin ensures the conditional-screens switch from
+        // 'none' (where user is on ChildJoin) removes it and shows KidHome.
+        // Sign-out uses clearChildSession() which sets appStatus='none',
+        // causing the navigator to show ModeSelect from the 'none' group.
         <>
           <Stack.Screen
             name="KidHome"
             component={HomeScreen}
             initialParams={{ childId: savedChildId }}
           />
-          <Stack.Screen name="ModeSelect" component={ModeSelectScreen} />
-          <Stack.Screen name="Signup"     component={SignupScreen} />
-          <Stack.Screen name="Login"      component={LoginScreen} />
-          <Stack.Screen name="ChildJoin"  component={ChildJoinScreen} />
         </>
       ) : (
-        // ── Logged-out / mode-select ───────────────────────────────────────────
         <>
           <Stack.Screen name="ModeSelect" component={ModeSelectScreen} />
           <Stack.Screen name="Signup"     component={SignupScreen} />
