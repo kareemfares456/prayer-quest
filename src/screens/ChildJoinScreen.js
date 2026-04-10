@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
   KeyboardAvoidingView, Platform, TextInput, ScrollView,
+  DeviceEventEmitter,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -109,7 +110,9 @@ export default function ChildJoinScreen({ navigation }) {
       await AsyncStorage.setItem('@pq/mode', 'child');
       await AsyncStorage.setItem('@pq/childId', childId);
 
-      navigation.replace('KidHome', { childId });
+      // Notify App.js to switch to 'child' status — this causes the navigator
+      // to re-render with KidHome as the first screen without any manual navigation.
+      DeviceEventEmitter.emit('childModeActivated', { childId });
     } catch (e) {
       setError('Network error. Check your connection.');
       setLoading(false);

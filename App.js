@@ -7,7 +7,7 @@ import {
   useFonts, Nunito_600SemiBold, Nunito_700Bold,
   Nunito_800ExtraBold, Nunito_900Black,
 } from '@expo-google-fonts/nunito';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './src/config/firebase';
@@ -38,6 +38,15 @@ export default function App() {
 
   const [status, setStatus] = useState('loading');
   const [savedChildId, setSavedChildId] = useState(null);
+
+  // ── Child mode activated from ChildJoinScreen ───────────────────────────────
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('childModeActivated', ({ childId }) => {
+      setSavedChildId(childId);
+      setStatus('child');
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
