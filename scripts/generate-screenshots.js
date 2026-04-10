@@ -19,6 +19,10 @@ const SLIDES = [
   { id: 's5', name: '5-progress-streaks' },
 ];
 
+// Base design dimensions (what the CSS was written for)
+const BASE_W = 390;
+const BASE_H = 844;
+
 async function run() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
@@ -32,79 +36,74 @@ async function run() {
     const sizeDir = path.join(OUT_DIR, size.label);
     fs.mkdirSync(sizeDir, { recursive: true });
 
-    const page = await browser.newPage();
+    // Scale to fill full height — stretch both axes independently
+    const scaleX = size.width / BASE_W;
+    const scaleY = size.height / BASE_H;
 
-    // Set viewport to exact App Store dimensions
-    await page.setViewport({ width: size.width, height: size.height, deviceScaleFactor: 1 });
-
-    await page.goto(`file://${HTML_FILE}`, { waitUntil: 'networkidle0' });
-
-    // Switch to this size via the JS function
-    await page.evaluate((s) => {
-      document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.slide').forEach(el => {
-        el.className = 'slide size-' + s;
-      });
-    }, size.key);
-
-    // Inject styles to make each slide exactly the right size and hide UI chrome
-    await page.addStyleTag({ content: `
-      body { padding: 0; margin: 0; background: #000; }
-      h1, .subtitle, .sizes { display: none !important; }
-      .grid { display: block; padding: 0; margin: 0; gap: 0; }
-      .slide {
-        width: ${size.width}px !important;
-        height: ${size.height}px !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-        display: flex !important;
-      }
-      /* Scale inner content proportionally from 390×844 base */
-      .slide .inner { transform-origin: top left; }
-    ` });
-
-    // Scale inner content to fill the full slide
-    await page.evaluate((w, h) => {
-      const baseW = 390, baseH = 844;
-      const scaleX = w / baseW;
-      const scaleY = h / baseH;
-      const scale = Math.min(scaleX, scaleY);
-      document.querySelectorAll('.inner').forEach(el => {
-        el.style.transform = `scale(${scale})`;
-        el.style.transformOrigin = 'top left';
-        el.style.width = baseW + 'px';
-        el.style.height = baseH + 'px';
-      });
-      document.querySelectorAll('.slide').forEach(el => {
-        el.style.display = 'flex';
-        el.style.alignItems = 'center';
-        el.style.justifyContent = 'center';
-        el.style.background = 'linear-gradient(170deg,#0d0d1a 0%,#130d2e 50%,#0d0d1a 100%)';
-      });
-    }, size.width, size.height);
-
-    // Screenshot each slide
     for (const slide of SLIDES) {
-      const el = await page.$(`#${slide.id}`);
-      if (!el) { console.warn(`  ⚠️  #${slide.id} not found`); continue; }
+      const page = await browser.newPage();
+      await page.setViewport({ width: size.width, height: size.height, deviceScaleFactor: 1 });
+      await page.goto(`file://${HTML_FILE}`, { waitUntil: 'networkidle0' });
+
+      // Hide chrome, show only target slide, scale inner to fill exactly
+      await page.evaluate((slideId, w, h, sx, sy, bw, bh) => {
+        // Hide all page chrome
+        ['h1', '.subtitle', '.sizes', 'h2'].forEach(sel => {
+          document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
+        });
+        // Hide the download section (last div before script)
+        const downloadDiv = document.querySelector('body > div:last-of-type');
+        if (downloadDiv) downloadDiv.style.display = 'none';
+
+        // Reset body/grid
+        document.body.style.cssText = 'margin:0;padding:0;background:#0d0d1a;overflow:hidden;';
+        const grid = document.querySelector('.grid');
+        if (grid) grid.style.cssText = 'padding:0;margin:0;display:block;';
+
+        // Hide all slides except target
+        document.querySelectorAll('.slide').forEach(el => {
+          el.style.display = 'none';
+        });
+
+        // Show and size the target slide
+        const target = document.getElementById(slideId);
+        if (!target) return;
+        target.style.cssText = `
+          display: block !important;
+          width: ${w}px !important;
+          height: ${h}px !important;
+          position: fixed !important;
+          top: 0 !important; left: 0 !important;
+          overflow: hidden !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+        `;
+
+        // Scale inner to fill — stretch both X and Y independently
+        const inner = target.querySelector('.inner');
+        if (inner) {
+          inner.style.cssText = `
+            position: absolute !important;
+            top: 0 !important; left: 0 !important;
+            width: ${bw}px !important;
+            height: ${bh}px !important;
+            transform: scale(${sx}, ${sy}) !important;
+            transform-origin: top left !important;
+          `;
+        }
+      }, slide.id, size.width, size.height, scaleX, scaleY, BASE_W, BASE_H);
 
       const outFile = path.join(sizeDir, `${slide.name}.png`);
-      await el.screenshot({ path: outFile, type: 'png' });
+      await page.screenshot({ path: outFile, type: 'png', clip: { x: 0, y: 0, width: size.width, height: size.height } });
       console.log(`  ✅ ${slide.name}.png`);
-    }
 
-    await page.close();
+      await page.close();
+    }
   }
 
   await browser.close();
 
   console.log(`\n🎉 Done! Screenshots saved to:\n   ${OUT_DIR}`);
-  console.log('\nFiles:');
-  for (const size of SIZES) {
-    console.log(`\n  ${size.label}/`);
-    SLIDES.forEach(s => console.log(`    ${s.name}.png  (${size.width}×${size.height})`));
-  }
 }
 
 run().catch(e => { console.error(e); process.exit(1); });
