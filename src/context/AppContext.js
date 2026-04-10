@@ -89,6 +89,14 @@ export function AppProvider({ children: nodes }) {
     setAppStatus('child');
   }, []);
 
+  // Called by HomeScreen when child signs out
+  const clearChildSession = useCallback(async () => {
+    await AsyncStorage.removeItem('@pq/mode');
+    await AsyncStorage.removeItem('@pq/childId');
+    setSavedChildId(null);
+    setAppStatus('none');
+  }, []);
+
   // ─── Parent data listener ───────────────────────────────────────────────────
   useEffect(() => {
     if (!authUser) { setParentData(null); return; }
@@ -226,6 +234,7 @@ export function AppProvider({ children: nodes }) {
     appStatus,
     savedChildId,
     setChildSession,
+    clearChildSession,
     authUser,
     parentData,
     loadChildById,
@@ -240,7 +249,7 @@ export function AppProvider({ children: nodes }) {
     getCompleteDays,
   }), [
     authUser, parentData, children, prayerLogs,
-    appStatus, savedChildId, setChildSession,
+    appStatus, savedChildId, setChildSession, clearChildSession,
     loadChildById, togglePrayer, addChild,
     updateChild, updateChildRewards, removeChild,
     getTodayLog, getStreak, getPoints, getCompleteDays,

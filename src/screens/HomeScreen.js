@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { COLORS, PRAYERS } from '../constants';
 import { useApp } from '../context/AppContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -406,8 +405,10 @@ function RewardsJourney({ rewards, completeDays, theme }) {
 // ─── Main Kid Home Screen ─────────────────────────────────────────────────────
 export default function HomeScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { state, loadChildById, togglePrayer, getTodayLog, getStreak, getCompleteDays } = useApp();
-  const { childId } = route.params || {};
+  const { state, savedChildId: contextChildId, clearChildSession, loadChildById, togglePrayer, getTodayLog, getStreak, getCompleteDays } = useApp();
+  const { childId: paramChildId } = route.params || {};
+  // Fall back to context's savedChildId in case initialParams weren't set yet
+  const childId = paramChildId ?? contextChildId;
 
   useEffect(() => {
     if (childId && !state.children.find(c => c.id === childId)) {
@@ -551,13 +552,9 @@ export default function HomeScreen({ navigation, route }) {
         <TouchableOpacity
           style={hStyles.signOutBtn}
           onPress={async () => {
-            // Child has no Firebase session — just clear persisted child state
-            // and navigate to ModeSelect (which is registered in the child screen group).
-            await Promise.all([
-              AsyncStorage.removeItem('@pq/mode'),
-              AsyncStorage.removeItem('@pq/childId'),
-            ]);
-            navigation.replace('ModeSelect');
+            // clearChildSession resets appStatus to 'none', which causes the
+            // navigator to switch to the logged-out group (ModeSelect) automatically.
+            await clearChildSession();
           }}
         >
           <Text style={hStyles.signOutText}>Sign Out</Text>
