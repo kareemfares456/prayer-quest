@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Prayer Quest – App Store Screenshots</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:#111;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;color:#fff;padding:40px 20px}
+  h1{text-align:center;font-size:24px;font-weight:800;color:#818cf8;margin-bottom:8px}
+  .subtitle{text-align:center;color:rgba(255,255,255,.4);font-size:13px;margin-bottom:40px}
+  .sizes{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-bottom:40px}
+  .size-btn{padding:10px 20px;border-radius:30px;border:1.5px solid rgba(129,140,248,.4);background:rgba(129,140,248,.1);color:#818cf8;font-size:13px;font-weight:700;cursor:pointer;transition:.2s}
+  .size-btn.active,.size-btn:hover{background:#818cf8;color:#fff;border-color:#818cf8}
+  .grid{display:flex;gap:24px;flex-wrap:wrap;justify-content:center}
+
+  /* ── Each slide ── */
+  .slide{position:relative;overflow:hidden;border-radius:24px;flex-shrink:0;box-shadow:0 32px 80px rgba(0,0,0,.8)}
+  .slide.size-67{width:293px;height:634px}   /* 1290×2796 ÷ 4.4 */
+  .slide.size-65{width:283px;height:612px}   /* 1242×2688 ÷ 4.4 */
+  .slide.size-55{width:283px;height:503px}   /* 1242×2208 ÷ 4.4 */
+
+  /* ── Shared BG ── */
+  .bg{position:absolute;inset:0;background:linear-gradient(170deg,#0d0d1a 0%,#130d2e 50%,#0d0d1a 100%)}
+  .glow{position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none}
+  .glow1{width:260px;height:260px;background:rgba(129,140,248,.18);top:-60px;right:-60px}
+  .glow2{width:200px;height:200px;background:rgba(192,132,252,.12);bottom:80px;left:-60px}
+
+  /* ── Inner content ── */
+  .inner{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;padding:22px 18px 16px}
+
+  /* ── Status bar ── */
+  .statusbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .statusbar .time{font-size:11px;font-weight:700;color:#fff}
+  .statusbar .icons{display:flex;gap:4px;align-items:center}
+  .statusbar .icons span{font-size:9px;opacity:.8}
+  .dynamic-island{width:80px;height:22px;background:#000;border-radius:40px;margin:0 auto 12px}
+
+  /* ── Marketing headline ── */
+  .headline{font-size:17px;font-weight:900;line-height:1.2;color:#fff;margin-bottom:4px;letter-spacing:-.3px}
+  .subheadline{font-size:10px;font-weight:600;color:rgba(255,255,255,.45);margin-bottom:14px;line-height:1.4;letter-spacing:.02em}
+
+  /* ── UI Cards ── */
+  .card{background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.2);border-radius:14px;padding:11px 13px;margin-bottom:8px}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .card-title{font-size:9px;font-weight:800;color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase}
+  .card-action{font-size:8px;color:#818cf8;font-weight:700}
+
+  /* ── Child row ── */
+  .child-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+  .child-row:last-child{border-bottom:none}
+  .child-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#818cf8,#c084fc);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .child-name{font-size:11px;font-weight:700;color:#fff}
+  .child-sub{font-size:9px;color:rgba(255,255,255,.4);margin-top:1px}
+  .prayer-dots{display:flex;gap:3px;margin-left:auto}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .dot.done{background:linear-gradient(135deg,#818cf8,#c084fc)}
+  .dot.miss{background:rgba(255,255,255,.12)}
+
+  /* ── Prayer list ── */
+  .prayer-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+  .prayer-item:last-child{border-bottom:none}
+  .prayer-emoji{font-size:14px;width:24px;text-align:center}
+  .prayer-name{flex:1}
+  .prayer-name .pn{font-size:11px;font-weight:700;color:#fff}
+  .prayer-name .pt{font-size:9px;color:rgba(255,255,255,.35)}
+  .check{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+  .check.done{background:linear-gradient(135deg,#818cf8,#c084fc)}
+  .check.miss{border:1.5px solid rgba(255,255,255,.15)}
+
+  /* ── Progress ring ── */
+  .ring-wrap{display:flex;align-items:center;justify-content:center;margin:8px 0}
+  .ring-outer{position:relative;width:90px;height:90px}
+  .ring-outer svg{position:absolute;inset:0;transform:rotate(-90deg)}
+  .ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring-pct{font-size:20px;font-weight:900;color:#fff}
+  .ring-label{font-size:7px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase}
+
+  /* ── Streak pill ── */
+  .pill{display:inline-flex;align-items:center;gap:4px;background:rgba(129,140,248,.15);border:1px solid rgba(129,140,248,.3);border-radius:20px;padding:4px 10px;font-size:9px;font-weight:700;color:#818cf8}
+
+  /* ── Reward card ── */
+  .reward-card{background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.2);border-radius:12px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+  .reward-icon{font-size:22px}
+  .reward-info{flex:1}
+  .reward-name{font-size:10px;font-weight:700;color:#fff;margin-bottom:2px}
+  .reward-prog{font-size:8px;color:rgba(255,255,255,.4)}
+  .reward-bar-bg{height:4px;background:rgba(255,255,255,.08);border-radius:4px;margin-top:5px;overflow:hidden}
+  .reward-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#818cf8,#c084fc)}
+  .reward-badge{background:linear-gradient(135deg,#818cf8,#c084fc);border-radius:10px;padding:3px 8px;font-size:8px;font-weight:800;color:#fff;flex-shrink:0}
+  .reward-badge.locked{background:rgba(255,255,255,.08);color:rgba(255,255,255,.3)}
+
+  /* ── Invite code ── */
+  .code-display{background:rgba(129,140,248,.1);border:1.5px dashed rgba(129,140,248,.4);border-radius:14px;padding:14px;text-align:center;margin:10px 0}
+  .code-chars{font-size:26px;font-weight:900;letter-spacing:.15em;color:#fff;font-variant-numeric:tabular-nums}
+  .code-sub{font-size:8px;color:rgba(255,255,255,.35);margin-top:4px}
+  .qr-mock{width:60px;height:60px;background:rgba(255,255,255,.06);border-radius:8px;margin:8px auto 0;display:flex;align-items:center;justify-content:center;font-size:26px}
+
+  /* ── Bottom CTA bar ── */
+  .cta-bar{margin-top:auto;background:linear-gradient(135deg,#818cf8,#c084fc);border-radius:14px;padding:11px 16px;display:flex;align-items:center;justify-content:space-between}
+  .cta-text{font-size:11px;font-weight:800;color:#fff}
+  .cta-arrow{font-size:14px}
+
+  /* ── Section label ── */
+  .section-label{font-size:8px;font-weight:800;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+
+  /* ── Tab bar ── */
+  .tab-bar{display:flex;justify-content:space-around;padding:8px 0 0;border-top:1px solid rgba(255,255,255,.06);margin-top:auto}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .tab .tab-icon{font-size:14px}
+  .tab .tab-label{font-size:7px;font-weight:600;color:rgba(255,255,255,.3)}
+  .tab.active .tab-label{color:#818cf8}
+
+  /* ── Weekly grid ── */
+  .week-grid{display:flex;gap:4px;margin:8px 0}
+  .day-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .day-name{font-size:7px;color:rgba(255,255,255,.3);font-weight:700}
+  .day-dot{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px}
+  .day-dot.full{background:linear-gradient(135deg,#818cf8,#c084fc)}
+  .day-dot.part{background:rgba(129,140,248,.3)}
+  .day-dot.none{background:rgba(255,255,255,.06)}
+  .day-dot.today{box-shadow:0 0 0 2px #818cf8}
+
+  /* ── Motivational pill ── */
+  .mot-pill{background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.25);border-radius:30px;padding:6px 12px;text-align:center;font-size:9px;font-weight:700;color:#818cf8;margin:8px 0}
+
+  /* ── Points badge ── */
+  .points-badge{display:flex;align-items:center;gap:6px;margin:6px 0}
+  .points-icon{font-size:20px}
+  .points-val{font-size:22px;font-weight:900;color:#fff}
+  .points-label{font-size:9px;color:rgba(255,255,255,.4);font-weight:600}
+
+  /* ── Greeting ── */
+  .greeting{font-size:9px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+  .parent-name{font-size:22px;font-weight:900;color:#fff;margin-bottom:2px}
+  .date-text{font-size:9px;color:rgba(255,255,255,.3);margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<h1>Prayer Quest — App Store Screenshots</h1>
+<p class="subtitle">Click a size then right-click → "Save image as…" on each slide, or use browser DevTools to export</p>
+
+<div class="sizes">
+  <button class="size-btn active" onclick="setSize('67')">6.7" iPhone&nbsp;&nbsp;1290×2796</button>
+  <button class="size-btn" onclick="setSize('65')">6.5" iPhone&nbsp;&nbsp;1242×2688</button>
+  <button class="size-btn" onclick="setSize('55')">5.5" iPhone&nbsp;&nbsp;1242×2208</button>
+</div>
+
+<div class="grid" id="grid">
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 1 — Parent Dashboard
+  ══════════════════════════════════════════ -->
+  <div class="slide size-67" id="s1">
+    <div class="bg"></div>
+    <div class="glow glow1"></div>
+    <div class="glow glow2"></div>
+    <div class="inner">
+      <div class="statusbar"><span class="time">9:41</span><div class="icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+      <div class="dynamic-island"></div>
+
+      <div class="headline">Every prayer.<br/>Every child.<br/>Every day.</div>
+      <div class="subheadline">Full family overview at a glance</div>
+
+      <div class="greeting">☀️ Good morning</div>
+      <div class="parent-name">Kareem</div>
+      <div class="date-text">Friday, April 10</div>
+
+      <div class="section-label">Today's Progress</div>
+      <div class="card">
+        <div class="child-row">
+          <div class="child-avatar">🦁</div>
+          <div style="flex:1"><div class="child-name">Ahmed</div><div class="child-sub">5/5 prayers ✓ All done!</div></div>
+          <div class="prayer-dots">
+            <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div>
+          </div>
+        </div>
+        <div class="child-row">
+          <div class="child-avatar" style="background:linear-gradient(135deg,#fb923c,#f59e0b)">🐯</div>
+          <div style="flex:1"><div class="child-name">Sara</div><div class="child-sub">3/5 prayers</div></div>
+          <div class="prayer-dots">
+            <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot miss"></div><div class="dot miss"></div>
+          </div>
+        </div>
+        <div class="child-row">
+          <div class="child-avatar" style="background:linear-gradient(135deg,#34d399,#059669)">🐬</div>
+          <div style="flex:1"><div class="child-name">Yusuf</div><div class="child-sub">2/5 prayers</div></div>
+          <div class="prayer-dots">
+            <div class="dot done"></div><div class="dot done"></div><div class="dot miss"></div><div class="dot miss"></div><div class="dot miss"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">Weekly Streaks</div>
+      <div class="card">
+        <div class="week-grid">
+          <div class="day-col"><div class="day-name">M</div><div class="day-dot full">✓</div></div>
+          <div class="day-col"><div class="day-name">T</div><div class="day-dot full">✓</div></div>
+          <div class="day-col"><div class="day-name">W</div><div class="day-dot full">✓</div></div>
+          <div class="day-col"><div class="day-name">T</div><div class="day-dot full">✓</div></div>
+          <div class="day-col"><div class="day-name">F</div><div class="day-dot today full">✓</div></div>
+          <div class="day-col"><div class="day-name">S</div><div class="day-dot none"></div></div>
+          <div class="day-col"><div class="day-name">S</div><div class="day-dot none"></div></div>
+        </div>
+        <div style="text-align:center;margin-top:6px"><span class="pill">🔥 12-day streak</span></div>
+      </div>
+
+      <div class="cta-bar">
+        <div class="cta-text">Free for families 🕌</div>
+        <div class="cta-arrow">→</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 2 — Child HomeScreen
+  ══════════════════════════════════════════ -->
+  <div class="slide size-67" id="s2">
+    <div class="bg"></div>
+    <div class="glow glow1"></div>
+    <div class="glow glow2"></div>
+    <div class="inner">
+      <div class="statusbar"><span class="time">9:41</span><div class="icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+      <div class="dynamic-island"></div>
+
+      <div class="headline">Kids actually<br/>love checking<br/>prayers off.</div>
+      <div class="subheadline">One tap. Instant celebration. Real rewards.</div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div class="child-avatar" style="width:40px;height:40px;font-size:18px;background:linear-gradient(135deg,#818cf8,#c084fc)">🦁</div>
+        <div><div class="child-name" style="font-size:14px">Ahmed</div><div class="child-sub">Age 8</div></div>
+        <div style="margin-left:auto"><span class="pill">🔥 12 streak</span></div>
+      </div>
+
+      <div class="ring-wrap">
+        <div class="ring-outer">
+          <svg viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg" width="90" height="90">
+            <circle cx="45" cy="45" r="38" stroke="rgba(129,140,248,.12)" stroke-width="8"/>
+            <circle cx="45" cy="45" r="38" stroke="url(#g)" stroke-width="8" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="47.75"/>
+            <defs><linearGradient id="g" x1="0" y1="0" x2="90" y2="90" gradientUnits="userSpaceOnUse"><stop stop-color="#818cf8"/><stop offset="1" stop-color="#c084fc"/></linearGradient></defs>
+          </svg>
+          <div class="ring-inner"><div class="ring-pct">4/5</div><div class="ring-label">Today</div></div>
+        </div>
+      </div>
+
+      <div class="mot-pill">⭐ Almost there — just Isha left!</div>
+
+      <div class="section-label">Today's Prayers</div>
+      <div class="card">
+        <div class="prayer-item"><div class="prayer-emoji">🌙</div><div class="prayer-name"><div class="pn">Fajr</div><div class="pt">Dawn · 5:15 AM</div></div><div class="check done">✓</div></div>
+        <div class="prayer-item"><div class="prayer-emoji">☀️</div><div class="prayer-name"><div class="pn">Dhuhr</div><div class="pt">Midday · 1:00 PM</div></div><div class="check done">✓</div></div>
+        <div class="prayer-item"><div class="prayer-emoji">🌤️</div><div class="prayer-name"><div class="pn">Asr</div><div class="pt">Afternoon · 4:15 PM</div></div><div class="check done">✓</div></div>
+        <div class="prayer-item"><div class="prayer-emoji">🌅</div><div class="prayer-name"><div class="pn">Maghrib</div><div class="pt">Sunset · 6:45 PM</div></div><div class="check done">✓</div></div>
+        <div class="prayer-item"><div class="prayer-emoji">🌃</div><div class="prayer-name"><div class="pn">Isha</div><div class="pt">Night · 8:00 PM</div></div><div class="check miss"></div></div>
+      </div>
+
+      <div class="cta-bar" style="margin-top:10px">
+        <div class="cta-text">No account needed for kids ✨</div>
+        <div class="cta-arrow">→</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 3 — Rewards Journey
+  ══════════════════════════════════════════ -->
+  <div class="slide size-67" id="s3">
+    <div class="bg"></div>
+    <div class="glow glow1"></div>
+    <div class="glow glow2"></div>
+    <div class="inner">
+      <div class="statusbar"><span class="time">9:41</span><div class="icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+      <div class="dynamic-island"></div>
+
+      <div class="headline">Real rewards<br/>for real<br/>effort.</div>
+      <div class="subheadline">You set the goals. They earn them.</div>
+
+      <div class="points-badge">
+        <div class="points-icon">⭐</div>
+        <div><div class="points-val">247</div><div class="points-label">TOTAL POINTS EARNED</div></div>
+      </div>
+
+      <div class="section-label">Rewards Journey</div>
+
+      <div class="reward-card">
+        <div class="reward-icon">📱</div>
+        <div class="reward-info">
+          <div class="reward-name">Extra Screen Time</div>
+          <div class="reward-prog">7 / 7 complete days</div>
+          <div class="reward-bar-bg"><div class="reward-bar-fill" style="width:100%"></div></div>
+        </div>
+        <div class="reward-badge">🎉 Earned!</div>
+      </div>
+
+      <div class="reward-card">
+        <div class="reward-icon">🍦</div>
+        <div class="reward-info">
+          <div class="reward-name">Special Treat</div>
+          <div class="reward-prog">14 / 14 complete days</div>
+          <div class="reward-bar-bg"><div class="reward-bar-fill" style="width:100%"></div></div>
+        </div>
+        <div class="reward-badge">🎉 Earned!</div>
+      </div>
+
+      <div class="reward-card">
+        <div class="reward-icon">🎡</div>
+        <div class="reward-info">
+          <div class="reward-name">Fun Outing</div>
+          <div class="reward-prog">18 / 30 complete days</div>
+          <div class="reward-bar-bg"><div class="reward-bar-fill" style="width:60%"></div></div>
+        </div>
+        <div class="reward-badge locked">12 days left</div>
+      </div>
+
+      <div class="reward-card">
+        <div class="reward-icon">🧸</div>
+        <div class="reward-info">
+          <div class="reward-name">New Toy</div>
+          <div class="reward-prog">18 / 60 complete days</div>
+          <div class="reward-bar-bg"><div class="reward-bar-fill" style="width:30%"></div></div>
+        </div>
+        <div class="reward-badge locked">42 days left</div>
+      </div>
+
+      <div class="cta-bar" style="margin-top:auto">
+        <div class="cta-text">You define the rewards 🎁</div>
+        <div class="cta-arrow">→</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 4 — Family Setup / Invite
+  ══════════════════════════════════════════ -->
+  <div class="slide size-67" id="s4">
+    <div class="bg"></div>
+    <div class="glow glow1"></div>
+    <div class="glow glow2"></div>
+    <div class="inner">
+      <div class="statusbar"><span class="time">9:41</span><div class="icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+      <div class="dynamic-island"></div>
+
+      <div class="headline">Set up your<br/>family in<br/>60 seconds.</div>
+      <div class="subheadline">Kids join with a code — no email or password required</div>
+
+      <div class="section-label" style="margin-top:6px">Step 1 · Parent creates account</div>
+      <div class="card" style="display:flex;gap:10px;align-items:center">
+        <div style="font-size:22px">👤</div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#fff">Sign in with Apple or Google</div>
+          <div style="font-size:8px;color:rgba(255,255,255,.4);margin-top:2px">Takes 10 seconds. No forms.</div>
+        </div>
+        <div class="reward-badge" style="margin-left:auto">Done ✓</div>
+      </div>
+
+      <div class="section-label">Step 2 · Share the invite code</div>
+      <div class="card">
+        <div class="code-display">
+          <div class="code-chars">A B 7 K 3 Q</div>
+          <div class="code-sub">Share this code with your child's device</div>
+          <div class="qr-mock">📱</div>
+        </div>
+      </div>
+
+      <div class="section-label">Step 3 · Child enters the code</div>
+      <div class="card" style="display:flex;gap:10px;align-items:center">
+        <div style="font-size:22px">🧒</div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#fff">Tap "I'm a Child" → Enter code</div>
+          <div style="font-size:8px;color:rgba(255,255,255,.4);margin-top:2px">Instantly linked. No password.</div>
+        </div>
+        <div class="reward-badge" style="margin-left:auto">Done ✓</div>
+      </div>
+
+      <div class="mot-pill" style="margin-top:8px">🎉 Family is connected! Ready to track prayers.</div>
+
+      <div class="cta-bar" style="margin-top:auto">
+        <div class="cta-text">Free · Private · No ads 🔒</div>
+        <div class="cta-arrow">→</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 5 — Progress & Streaks
+  ══════════════════════════════════════════ -->
+  <div class="slide size-67" id="s5">
+    <div class="bg"></div>
+    <div class="glow glow1"></div>
+    <div class="glow glow2"></div>
+    <div class="inner">
+      <div class="statusbar"><span class="time">9:41</span><div class="icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+      <div class="dynamic-island"></div>
+
+      <div class="headline">Build a habit<br/>that lasts<br/>a lifetime.</div>
+      <div class="subheadline">Streaks, points, and milestones keep them going</div>
+
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div class="card" style="flex:1;text-align:center;padding:10px 8px">
+          <div style="font-size:20px;font-weight:900;color:#818cf8">12</div>
+          <div style="font-size:8px;color:rgba(255,255,255,.4);font-weight:700;margin-top:2px">DAY STREAK 🔥</div>
+        </div>
+        <div class="card" style="flex:1;text-align:center;padding:10px 8px">
+          <div style="font-size:20px;font-weight:900;color:#c084fc">247</div>
+          <div style="font-size:8px;color:rgba(255,255,255,.4);font-weight:700;margin-top:2px">TOTAL POINTS ⭐</div>
+        </div>
+        <div class="card" style="flex:1;text-align:center;padding:10px 8px">
+          <div style="font-size:20px;font-weight:900;color:#34d399">18</div>
+          <div style="font-size:8px;color:rgba(255,255,255,.4);font-weight:700;margin-top:2px">FULL DAYS ✓</div>
+        </div>
+      </div>
+
+      <div class="section-label">Monthly view</div>
+      <div class="card">
+        <div style="display:flex;gap:3px;flex-wrap:wrap">
+          <!-- 30 day dots -->
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot part" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot part" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot part" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot none" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot today full" style="width:18px;height:18px;border-radius:50%"></div>
+          <div class="day-dot none" style="width:18px;height:18px;border-radius:50%;opacity:.3"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;align-items:center">
+          <div style="display:flex;gap:4px;align-items:center"><div class="day-dot full" style="width:10px;height:10px;border-radius:50%"></div><span style="font-size:8px;color:rgba(255,255,255,.4)">All 5</span></div>
+          <div style="display:flex;gap:4px;align-items:center"><div class="day-dot part" style="width:10px;height:10px;border-radius:50%"></div><span style="font-size:8px;color:rgba(255,255,255,.4)">Partial</span></div>
+          <div style="display:flex;gap:4px;align-items:center"><div class="day-dot none" style="width:10px;height:10px;border-radius:50%"></div><span style="font-size:8px;color:rgba(255,255,255,.4)">Missed</span></div>
+        </div>
+      </div>
+
+      <div class="mot-pill">🌟 Ahmed is in the top 10% this month!</div>
+
+      <div class="cta-bar" style="margin-top:auto">
+        <div class="cta-text">Start your family's quest today 🕌</div>
+        <div class="cta-arrow">→</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /grid -->
+
+<script>
+function setSize(s){
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelectorAll('.slide').forEach(el=>{
+    el.className='slide size-'+s;
+  });
+}
+</script>
+</body>
+</html>
