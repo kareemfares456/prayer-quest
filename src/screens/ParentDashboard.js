@@ -854,7 +854,7 @@ function AccountModal({ visible, onClose }) {
 
               {/* ── Delete Account ── */}
               <View style={acctStyles.dangerZone}>
-                <Text style={acctStyles.dangerLabel}>DANGER ZONE</Text>
+                <Text style={acctStyles.dangerLabel}>DELETE ACCOUNT</Text>
                 <Text style={acctStyles.dangerDesc}>
                   Deleting your account permanently removes all your data including all children's prayer records and rewards. This cannot be undone.
                 </Text>
