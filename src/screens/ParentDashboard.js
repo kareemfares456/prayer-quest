@@ -7,8 +7,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
-import { signOut } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import {
+  signOut, sendPasswordResetEmail, deleteUser,
+  reauthenticateWithCredential, EmailAuthProvider,
+} from 'firebase/auth';
+import { auth, db } from '../config/firebase';
+import {
+  collection, doc, query, where, getDocs, deleteDoc, writeBatch, updateDoc,
+} from 'firebase/firestore';
 import { COLORS, PRAYERS, DURATION_OPTIONS, AVATARS } from '../constants';
 import { useApp } from '../context/AppContext';
 
@@ -687,6 +693,294 @@ function AddChildModal({ visible, onClose, onSaved }) {
   );
 }
 
+// ─── Account Modal ─────────────────────────────────────────────────────────────
+function AccountModal({ visible, onClose }) {
+  const { authUser, parentData } = useApp();
+  const [displayName, setDisplayName]   = useState('');
+  const [nameLoading, setNameLoading]   = useState(false);
+  const [nameSaved, setNameSaved]       = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent]       = useState(false);
+  // delete flow: 'idle' | 'confirm' | 'reauth' | 'deleting'
+  const [deleteStep, setDeleteStep]     = useState('idle');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError]   = useState('');
+
+  const isEmailProvider = authUser?.providerData?.[0]?.providerId === 'password';
+
+  useEffect(() => {
+    if (visible) {
+      setDisplayName(parentData?.name || '');
+      setNameSaved(false);
+      setResetSent(false);
+      setDeleteStep('idle');
+      setDeletePassword('');
+      setDeleteError('');
+    }
+  }, [visible]);
+
+  const handleSaveName = async () => {
+    const trimmed = displayName.trim();
+    if (!trimmed || trimmed === parentData?.name) return;
+    setNameLoading(true);
+    try {
+      await updateDoc(doc(db, 'users', authUser.uid), { name: trimmed });
+      setNameSaved(true);
+      setTimeout(() => setNameSaved(false), 2000);
+    } catch (e) {
+      // silently fail
+    } finally {
+      setNameLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!authUser?.email) return;
+    setResetLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, authUser.email);
+      setResetSent(true);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteError('');
+    setDeleteStep('deleting');
+    try {
+      // Reauthenticate for email/password users
+      if (isEmailProvider) {
+        const credential = EmailAuthProvider.credential(authUser.email, deletePassword);
+        await reauthenticateWithCredential(authUser, credential);
+      }
+
+      // Delete all children docs
+      const childrenSnap = await getDocs(
+        query(collection(db, 'children'), where('parentId', '==', authUser.uid))
+      );
+      const batch = writeBatch(db);
+      childrenSnap.docs.forEach(d => batch.delete(d.ref));
+      // Delete user profile doc
+      batch.delete(doc(db, 'users', authUser.uid));
+      await batch.commit();
+
+      // Delete Firebase Auth account — triggers onAuthStateChanged → 'none'
+      await deleteUser(authUser);
+    } catch (e) {
+      if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+        setDeleteError('Incorrect password. Please try again.');
+        setDeleteStep('reauth');
+      } else if (e.code === 'auth/requires-recent-login') {
+        setDeleteError('Please sign out, sign back in, then try again.');
+        setDeleteStep('idle');
+      } else {
+        setDeleteError('Something went wrong. Please try again.');
+        setDeleteStep('confirm');
+      }
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <View style={pStyles.overlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} />
+          <View style={[pStyles.sheet, { height: '85%' }]}>
+            <View style={pStyles.handle} />
+
+            {/* Header */}
+            <View style={[pStyles.header, { paddingBottom: 16 }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={pStyles.childName}>Account</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>
+                  {authUser?.email}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={onClose} style={pStyles.closeBtn}>
+                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 18 }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, gap: 24 }}>
+
+              {/* ── Edit Name ── */}
+              <View>
+                <Text style={acctStyles.sectionLabel}>DISPLAY NAME</Text>
+                <View style={acctStyles.row}>
+                  <TextInput
+                    value={displayName}
+                    onChangeText={setDisplayName}
+                    placeholder="Your name"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    style={[acctStyles.input, { flex: 1 }]}
+                    returnKeyType="done"
+                    onSubmitEditing={handleSaveName}
+                  />
+                  <TouchableOpacity
+                    onPress={handleSaveName}
+                    disabled={nameLoading || !displayName.trim() || displayName.trim() === parentData?.name}
+                    style={[acctStyles.saveBtn, (nameLoading || !displayName.trim() || displayName.trim() === parentData?.name) && { opacity: 0.4 }]}
+                  >
+                    {nameLoading
+                      ? <ActivityIndicator color="#818cf8" size="small" />
+                      : <Text style={acctStyles.saveBtnText}>{nameSaved ? '✓ Saved' : 'Save'}</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* ── Reset Password ── */}
+              {isEmailProvider && (
+                <View>
+                  <Text style={acctStyles.sectionLabel}>PASSWORD</Text>
+                  <TouchableOpacity
+                    onPress={handleResetPassword}
+                    disabled={resetLoading || resetSent}
+                    style={[acctStyles.actionBtn, (resetLoading || resetSent) && { opacity: 0.5 }]}
+                  >
+                    {resetLoading
+                      ? <ActivityIndicator color="#818cf8" size="small" />
+                      : <Text style={acctStyles.actionBtnText}>
+                          {resetSent ? '✓ Reset email sent' : 'Send Password Reset Email'}
+                        </Text>
+                    }
+                  </TouchableOpacity>
+                  {resetSent && (
+                    <Text style={acctStyles.hint}>Check your inbox at {authUser?.email}</Text>
+                  )}
+                </View>
+              )}
+
+              {/* ── Delete Account ── */}
+              <View style={acctStyles.dangerZone}>
+                <Text style={acctStyles.dangerLabel}>DANGER ZONE</Text>
+                <Text style={acctStyles.dangerDesc}>
+                  Deleting your account permanently removes all your data including all children's prayer records and rewards. This cannot be undone.
+                </Text>
+
+                {deleteStep === 'idle' && (
+                  <TouchableOpacity
+                    onPress={() => setDeleteStep('confirm')}
+                    style={acctStyles.deleteBtn}
+                  >
+                    <Text style={acctStyles.deleteBtnText}>Delete Account</Text>
+                  </TouchableOpacity>
+                )}
+
+                {deleteStep === 'confirm' && (
+                  <View style={{ gap: 10 }}>
+                    <Text style={acctStyles.dangerConfirmText}>
+                      Are you sure? This will delete your account and all data permanently.
+                    </Text>
+                    {deleteError ? <Text style={acctStyles.errorText}>{deleteError}</Text> : null}
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity onPress={() => { setDeleteStep('idle'); setDeleteError(''); }} style={[acctStyles.actionBtn, { flex: 1 }]}>
+                        <Text style={acctStyles.actionBtnText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => isEmailProvider ? setDeleteStep('reauth') : handleDeleteAccount()}
+                        style={[acctStyles.deleteBtn, { flex: 1 }]}
+                      >
+                        <Text style={acctStyles.deleteBtnText}>Yes, Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {deleteStep === 'reauth' && (
+                  <View style={{ gap: 10 }}>
+                    <Text style={acctStyles.hint}>Enter your password to confirm deletion:</Text>
+                    <TextInput
+                      value={deletePassword}
+                      onChangeText={setDeletePassword}
+                      placeholder="Your password"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
+                      secureTextEntry
+                      style={acctStyles.input}
+                      autoFocus
+                    />
+                    {deleteError ? <Text style={acctStyles.errorText}>{deleteError}</Text> : null}
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <TouchableOpacity onPress={() => { setDeleteStep('idle'); setDeleteError(''); setDeletePassword(''); }} style={[acctStyles.actionBtn, { flex: 1 }]}>
+                        <Text style={acctStyles.actionBtnText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleDeleteAccount}
+                        disabled={!deletePassword}
+                        style={[acctStyles.deleteBtn, { flex: 1 }, !deletePassword && { opacity: 0.4 }]}
+                      >
+                        <Text style={acctStyles.deleteBtnText}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {deleteStep === 'deleting' && (
+                  <View style={{ alignItems: 'center', paddingVertical: 12, gap: 8 }}>
+                    <ActivityIndicator color="#f87171" />
+                    <Text style={acctStyles.hint}>Deleting account…</Text>
+                  </View>
+                )}
+              </View>
+
+            </ScrollView>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const acctStyles = StyleSheet.create({
+  sectionLabel: {
+    color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8,
+  },
+  row: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  input: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13,
+    color: '#ffffff', fontSize: 15, fontWeight: '600',
+  },
+  saveBtn: {
+    backgroundColor: 'rgba(129,140,248,0.15)',
+    borderWidth: 1.5, borderColor: 'rgba(129,140,248,0.4)',
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13,
+    alignItems: 'center', justifyContent: 'center',
+    minWidth: 72,
+  },
+  saveBtnText: { color: '#818cf8', fontSize: 13, fontWeight: '800' },
+  actionBtn: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14, paddingVertical: 13, paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  actionBtnText: { color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: '700' },
+  hint: { color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 4 },
+  dangerZone: {
+    backgroundColor: 'rgba(248,113,113,0.06)',
+    borderWidth: 1.5, borderColor: 'rgba(248,113,113,0.2)',
+    borderRadius: 18, padding: 16, gap: 12,
+  },
+  dangerLabel: {
+    color: '#f87171', fontSize: 10, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 1.5,
+  },
+  dangerDesc: { color: 'rgba(255,255,255,0.4)', fontSize: 13, lineHeight: 19 },
+  dangerConfirmText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '700', lineHeight: 19 },
+  deleteBtn: {
+    backgroundColor: 'rgba(248,113,113,0.15)',
+    borderWidth: 1.5, borderColor: 'rgba(248,113,113,0.4)',
+    borderRadius: 14, paddingVertical: 13, paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  deleteBtnText: { color: '#f87171', fontSize: 14, fontWeight: '800' },
+  errorText: { color: '#f87171', fontSize: 13, fontWeight: '700' },
+});
+
 // ─── Child Profile Modal ───────────────────────────────────────────────────────
 function ChildProfileModal({ visible, onClose, childId, theme }) {
   const { state, getTodayLog, getStreak, getPoints, updateChildRewards, removeChild } = useApp();
@@ -850,6 +1144,7 @@ export default function ParentDashboard({ navigation }) {
   const [selectedChild, setSelectedChild] = useState(null);
   const [showAddChild, setShowAddChild] = useState(false);
   const [inviteChild, setInviteChild] = useState(null); // child object to invite
+  const [showAccount, setShowAccount] = useState(false);
 
   const totalDone = children.reduce((sum, c) =>
     sum + PRAYERS.filter(p => getTodayLog(c.id)[p.id]).length, 0);
@@ -869,7 +1164,12 @@ export default function ParentDashboard({ navigation }) {
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={styles.greetingSmall}>{greeting.emoji} {greeting.text}</Text>
-            <Text style={styles.parentName}>{parentData?.name?.split(' ')[0] || 'Parent'}</Text>
+            <TouchableOpacity onPress={() => setShowAccount(true)} activeOpacity={0.7} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' }}>
+              <Text style={styles.parentName}>{parentData?.name?.split(' ')[0] || 'Parent'}</Text>
+              <View style={styles.accountIconBadge}>
+                <Text style={{ fontSize: 12 }}>⚙️</Text>
+              </View>
+            </TouchableOpacity>
             <Text style={styles.dateText}>
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </Text>
@@ -954,6 +1254,11 @@ export default function ParentDashboard({ navigation }) {
         onClose={() => setShowAddChild(false)}
         onSaved={(child) => { setShowAddChild(false); setInviteChild(child); }}
       />
+
+      <AccountModal
+        visible={showAccount}
+        onClose={() => setShowAccount(false)}
+      />
     </LinearGradient>
   );
 }
@@ -964,6 +1269,13 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
   greetingSmall: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '700', marginBottom: 2 },
   parentName: { color: COLORS.white, fontSize: 26, fontWeight: '900', lineHeight: 30 },
+  accountIconBadge: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 100, width: 26, height: 26,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 2,
+  },
   dateText: { color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 3 },
   parentAvatar: {
     width: 52, height: 52, borderRadius: 26,
