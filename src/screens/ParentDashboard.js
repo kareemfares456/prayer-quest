@@ -92,9 +92,9 @@ function HistorySection({ logs, todayLog, today, theme }) {
             <TouchableOpacity
               key={t}
               onPress={() => setTab(t)}
-              style={[pStyles.tabBtn, tab === t && { backgroundColor: theme.glow + '25', borderColor: theme.glow + '60' }]}
+              style={[pStyles.tabBtn, tab === t && { backgroundColor: COLORS.purple + '25', borderColor: COLORS.purple + '60' }]}
             >
-              <Text style={[pStyles.tabText, tab === t && { color: theme.glow }]}>
+              <Text style={[pStyles.tabText, tab === t && { color: COLORS.purple }]}>
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </Text>
             </TouchableOpacity>
@@ -246,23 +246,23 @@ function RewardsJourney({ child, completeDays, theme, updateChildRewards, isEdit
             <View style={pStyles.journeyLeft}>
               <View style={[
                 pStyles.stepDot,
-                earned && { backgroundColor: theme.glow, borderColor: theme.glow },
-                isNext && !earned && { borderColor: theme.glow },
+                earned && { backgroundColor: COLORS.purple, borderColor: COLORS.purple },
+                isNext && !earned && { borderColor: COLORS.purple },
               ]}>
-                <Text style={[pStyles.stepNum, (earned || isNext) && { color: earned ? COLORS.white : theme.glow }]}>
+                <Text style={[pStyles.stepNum, (earned || isNext) && { color: earned ? COLORS.white : COLORS.purple }]}>
                   {earned ? '✓' : idx + 1}
                 </Text>
               </View>
               {!isLast && (
-                <View style={[pStyles.stepLine, earned && { backgroundColor: theme.glow + '50' }]} />
+                <View style={[pStyles.stepLine, earned && { backgroundColor: COLORS.purple + '50' }]} />
               )}
             </View>
 
             <View style={[
               pStyles.journeyCard,
-              isNext && !isEditing && { borderColor: theme.glow + '50', backgroundColor: theme.glow + '08' },
-              earned && !isEditing && { borderColor: theme.glow + '30' },
-              isEditing && { borderColor: theme.glow + '40' },
+              isNext && !isEditing && { borderColor: COLORS.purple + '50', backgroundColor: COLORS.purple + '08' },
+              earned && !isEditing && { borderColor: COLORS.purple + '30' },
+              isEditing && { borderColor: COLORS.purple + '40' },
             ]}>
               <View style={pStyles.journeyCardTop}>
                 <Text style={{ fontSize: 24 }}>{r.icon}</Text>
@@ -276,7 +276,7 @@ function RewardsJourney({ child, completeDays, theme, updateChildRewards, isEdit
                       style={pStyles.editInput}
                     />
                   ) : (
-                    <Text style={[pStyles.journeyRewardName, earned && { color: theme.glow }]}>
+                    <Text style={[pStyles.journeyRewardName, earned && { color: COLORS.purple }]}>
                       {r.label || 'Unnamed'}
                     </Text>
                   )}
@@ -297,7 +297,7 @@ function RewardsJourney({ child, completeDays, theme, updateChildRewards, isEdit
                       <TouchableOpacity
                         key={opt.days}
                         onPress={() => updateReward(r.id, 'days', opt.days)}
-                        style={[pStyles.dChip, sel && { borderColor: theme.glow, backgroundColor: theme.glow + '25' }]}
+                        style={[pStyles.dChip, sel && { borderColor: COLORS.purple, backgroundColor: COLORS.purple + '25' }]}
                       >
                         <Text style={[pStyles.dChipText, sel && { color: COLORS.white }]}>{opt.label}</Text>
                       </TouchableOpacity>
@@ -305,18 +305,18 @@ function RewardsJourney({ child, completeDays, theme, updateChildRewards, isEdit
                   })}
                 </ScrollView>
               ) : earned ? (
-                <View style={[pStyles.earnedBadge, { borderColor: theme.glow + '50', backgroundColor: theme.glow + '12' }]}>
-                  <Text style={[pStyles.earnedText, { color: theme.glow }]}>🎉 Earned! ({r.days} complete days)</Text>
+                <View style={[pStyles.earnedBadge, { borderColor: COLORS.purple + '50', backgroundColor: COLORS.purple + '12' }]}>
+                  <Text style={[pStyles.earnedText, { color: COLORS.purple }]}>🎉 Earned! ({r.days} complete days)</Text>
                 </View>
               ) : (
                 <View style={{ marginTop: 10 }}>
                   <View style={pStyles.progressRow}>
                     <Text style={pStyles.progressLabel}>{completeDays} / {r.days} complete days</Text>
-                    <Text style={[pStyles.progressPct, isNext && { color: theme.glow }]}>{Math.round(progress)}%</Text>
+                    <Text style={[pStyles.progressPct, isNext && { color: COLORS.purple }]}>{Math.round(progress)}%</Text>
                   </View>
                   <View style={pStyles.progressBg}>
                     <LinearGradient
-                      colors={theme.grad}
+                      colors={[COLORS.purple, '#c084fc']}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                       style={[pStyles.progressFill, { width: `${Math.max(progress, 1)}%` }]}
                     />
@@ -330,7 +330,7 @@ function RewardsJourney({ child, completeDays, theme, updateChildRewards, isEdit
 
       {isEditing && child.rewards.length < 8 && (
         <TouchableOpacity onPress={addReward} style={pStyles.addRewardBtn}>
-          <Text style={[pStyles.addRewardText, { color: theme.glow }]}>+ Add Reward</Text>
+          <Text style={[pStyles.addRewardText, { color: COLORS.purple }]}>+ Add Reward</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -1031,9 +1031,9 @@ function ChildProfileModal({ visible, onClose, childId, theme }) {
               <Text style={pStyles.sectionLabel}>REWARDS JOURNEY</Text>
               <TouchableOpacity
                 onPress={() => setRewardsEditing(e => !e)}
-                style={[pStyles.editBtn, rewardsEditing && { backgroundColor: theme.glow + '20', borderColor: theme.glow + '60' }]}
+                style={[pStyles.editBtn, rewardsEditing && { backgroundColor: COLORS.purple + '20', borderColor: COLORS.purple + '60' }]}
               >
-                <Text style={[pStyles.editBtnText, rewardsEditing && { color: theme.glow }]}>
+                <Text style={[pStyles.editBtnText, rewardsEditing && { color: COLORS.purple }]}>
                   {rewardsEditing ? 'Done' : 'Edit'}
                 </Text>
               </TouchableOpacity>
