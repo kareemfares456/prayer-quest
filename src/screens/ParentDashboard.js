@@ -1153,7 +1153,7 @@ function ChildRow({ child, theme, log, streak, completeDays, onPress, onShare, o
 export default function ParentDashboard({ navigation }) {
   const insets = useSafeAreaInsets();
   const { state, parentData, getTodayLog, getStreak, getCompleteDays, togglePrayer } = useApp();
-  const { children } = state;
+  const { children, childrenLoaded } = state;
   const greeting = getGreeting();
   const [selectedChild, setSelectedChild] = useState(null);
   const [showAddChild, setShowAddChild] = useState(false);
@@ -1209,7 +1209,7 @@ export default function ParentDashboard({ navigation }) {
               onTogglePrayer={(prayerId) => togglePrayer(child.id, prayerId)}
             />
           );
-        }) : (
+        }) : childrenLoaded ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>🌙</Text>
             <Text style={styles.emptyTitle}>Add your first child</Text>
@@ -1222,7 +1222,7 @@ export default function ParentDashboard({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        )}
+        ) : null}
 
         {children.length > 0 && (
           <TouchableOpacity onPress={() => setShowAddChild(true)} style={styles.addChildBtn}>

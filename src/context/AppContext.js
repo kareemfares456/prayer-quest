@@ -48,6 +48,7 @@ export function AppProvider({ children: nodes }) {
   const [authUser, setAuthUser] = useState(undefined); // undefined = loading
   const [parentData, setParentData] = useState(null);
   const [children, setChildren] = useState([]);
+  const [childrenLoaded, setChildrenLoaded] = useState(false);
   const [prayerLogs, setPrayerLogs] = useState({}); // { childId: { dateStr: { fajr, ... } } }
 
   // ─── App-level auth status (drives navigator conditional screens) ────────────
@@ -109,11 +110,14 @@ export function AppProvider({ children: nodes }) {
   useEffect(() => {
     if (!authUser) {
       // Not logged in as parent — don't wipe children (child mode may have set them)
+      setChildrenLoaded(false);
       return;
     }
+    setChildrenLoaded(false);
     const q = query(collection(db, 'children'), where('parentId', '==', authUser.uid));
     const unsub = onSnapshot(q, snap => {
       setChildren(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setChildrenLoaded(true);
     });
     return unsub;
   }, [authUser]);
@@ -230,7 +234,7 @@ export function AppProvider({ children: nodes }) {
 
   // ─── State exposed ──────────────────────────────────────────────────────────
   const api = useMemo(() => ({
-    state: { authUser, parentData, children, prayerLogs },
+    state: { authUser, parentData, children, prayerLogs, childrenLoaded },
     appStatus,
     savedChildId,
     setChildSession,
@@ -248,7 +252,7 @@ export function AppProvider({ children: nodes }) {
     getPoints,
     getCompleteDays,
   }), [
-    authUser, parentData, children, prayerLogs,
+    authUser, parentData, children, prayerLogs, childrenLoaded,
     appStatus, savedChildId, setChildSession, clearChildSession,
     loadChildById, togglePrayer, addChild,
     updateChild, updateChildRewards, removeChild,
