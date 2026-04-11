@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.kfares.prayerquest",
-      "buildNumber": "3",
+      "buildNumber": "7",
       "infoPlist": {
         "NSCameraUsageDescription": "Scan the QR code shown by your parent to join the family.",
         "ITSAppUsesNonExemptEncryption": false
