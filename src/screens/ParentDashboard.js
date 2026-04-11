@@ -1088,6 +1088,7 @@ function ChildRow({ child, theme, log, streak, completeDays, onPress, onShare, o
           <Text style={{ fontSize: 22 }}>{child.avatar}</Text>
         </LinearGradient>
         <Text style={styles.rowName}>{child.name || 'Unnamed'}</Text>
+        <Text style={styles.cardChevron}>›</Text>
         <View style={{ flex: 1 }} />
         <TouchableOpacity onPress={onShare} style={styles.shareBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={styles.shareBtnText}>Invite</Text>
@@ -1339,10 +1340,11 @@ const styles = StyleSheet.create({
   addChildBtnText: { color: COLORS.purple, fontSize: 12, fontWeight: '800' },
 
   childCard: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
     borderRadius: 20, padding: 16, gap: 14,
   },
+  cardChevron: { color: 'rgba(255,255,255,0.3)', fontSize: 22, fontWeight: '300', marginLeft: 4 },
   childCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowAvatar: {
     width: 44, height: 44, borderRadius: 22,
