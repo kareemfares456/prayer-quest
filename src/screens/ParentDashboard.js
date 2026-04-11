@@ -1012,7 +1012,7 @@ function ChildProfileModal({ visible, onClose, childId, theme }) {
               <Text style={pStyles.childName}>{child.name}</Text>
               <View style={pStyles.chips}>
                 <View style={pStyles.chip}>
-                  <Text style={pStyles.chipText}>✓ {completeDays}d</Text>
+                  <Text style={pStyles.chipText}>✓ {completeDays} {completeDays === 1 ? 'day' : 'days'}</Text>
                 </View>
                 <View style={pStyles.chip}>
                   <Text style={pStyles.chipText}>🏆 {awardsEarned}</Text>
