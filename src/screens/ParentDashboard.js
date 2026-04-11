@@ -131,13 +131,13 @@ function HistorySection({ logs, todayLog, today, theme }) {
               const allDone = count === 5;
               return (
                 <View key={key} style={pStyles.dayCol}>
-                  <Text style={[pStyles.dayLetter, isToday && { color: theme.glow }]}>
+                  <Text style={[pStyles.dayLetter, isToday && { color: COLORS.purple }]}>
                     {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
                   </Text>
                   <View style={[
                     pStyles.dayCircle,
-                    isToday && { borderColor: theme.glow + '80' },
-                    allDone && { backgroundColor: theme.glow + '25', borderColor: theme.glow },
+                    isToday && { borderColor: COLORS.purple + '80' },
+                    allDone && { backgroundColor: COLORS.purple + '25', borderColor: COLORS.purple },
                   ]}>
                     {isFuture
                       ? <Text style={pStyles.futureDash}>–</Text>
@@ -184,13 +184,13 @@ function HistorySection({ logs, todayLog, today, theme }) {
                   <View key={cell.key} style={pStyles.monthCell}>
                     <View style={[
                       pStyles.monthDayCircle,
-                      isToday && { borderColor: theme.glow },
-                      allDone && { backgroundColor: theme.glow + '30', borderColor: theme.glow },
+                      isToday && { borderColor: COLORS.purple },
+                      allDone && { backgroundColor: COLORS.purple + '30', borderColor: COLORS.purple },
                     ]}>
                       <Text style={[
                         pStyles.monthDayNum,
-                        isToday && { color: theme.glow, fontWeight: '900' },
-                        allDone && { color: theme.glow },
+                        isToday && { color: COLORS.purple, fontWeight: '900' },
+                        allDone && { color: COLORS.purple },
                         isFuture && { opacity: 0.2 },
                       ]}>{cell.d}</Text>
                     </View>
