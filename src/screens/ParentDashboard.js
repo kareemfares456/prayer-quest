@@ -1192,12 +1192,7 @@ export default function ParentDashboard({ navigation }) {
 
         {/* Children List */}
         {children.length > 0 && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={styles.sectionLabel}>TODAY'S PROGRESS</Text>
-            <TouchableOpacity onPress={() => setShowAddChild(true)} style={styles.addChildBtn}>
-              <Text style={styles.addChildBtnText}>+ Add Child</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.sectionLabel}>TODAY'S PROGRESS</Text>
         )}
         {children.length > 0 ? children.map((child, i) => {
           const theme = CHILD_THEMES[i % CHILD_THEMES.length];
@@ -1227,6 +1222,12 @@ export default function ParentDashboard({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
           </View>
+        )}
+
+        {children.length > 0 && (
+          <TouchableOpacity onPress={() => setShowAddChild(true)} style={styles.addChildBtn}>
+            <Text style={styles.addChildBtnText}>+ Add Child</Text>
+          </TouchableOpacity>
         )}
 
         {children.length > 0 && <View style={styles.quoteCard}>
@@ -1335,9 +1336,10 @@ const styles = StyleSheet.create({
 
   sectionLabel: { color: 'rgba(255,255,255,0.25)', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: -2 },
   addChildBtn: {
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 100,
-    backgroundColor: 'rgba(129,140,248,0.1)',
-    borderWidth: 1, borderColor: 'rgba(129,140,248,0.3)',
+    paddingVertical: 14, borderRadius: 14, alignItems: 'center',
+    backgroundColor: 'rgba(129,140,248,0.08)',
+    borderWidth: 1, borderColor: 'rgba(129,140,248,0.25)',
+    borderStyle: 'dashed',
   },
   addChildBtnText: { color: COLORS.purple, fontSize: 12, fontWeight: '800' },
 
