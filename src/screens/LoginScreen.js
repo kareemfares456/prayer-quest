@@ -21,6 +21,15 @@ function GoogleBtn({ onPress }) {
   );
 }
 
+function AppleBtn({ onPress }) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.appleSocialBtn}>
+      <Text style={styles.appleIcon}></Text>
+      <Text style={styles.appleText}>Apple</Text>
+    </TouchableOpacity>
+  );
+}
+
 function OrDivider() {
   return (
     <View style={styles.orRow}>
@@ -111,13 +120,7 @@ export default function LoginScreen({ navigation }) {
               <View style={styles.socialRow}>
                 <GoogleBtn onPress={handleGoogleLogin} />
                 {Platform.OS === 'ios' && (
-                  <AppleAuthentication.AppleAuthenticationButton
-                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                    cornerRadius={14}
-                    style={styles.appleBtn}
-                    onPress={handleAppleLogin}
-                  />
+                  <AppleBtn onPress={handleAppleLogin} />
                 )}
               </View>
               <OrDivider />
@@ -189,7 +192,15 @@ const styles = StyleSheet.create({
   },
   socialIcon: { fontSize: 16, fontWeight: '900', color: '#1f1f1f' },
   socialText: { color: '#1f1f1f', fontSize: 14, fontWeight: '700' },
-  appleBtn: { flex: 1, height: 46 },
+  appleSocialBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#000000', borderRadius: 14,
+    paddingVertical: 13,
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  appleIcon: { fontSize: 16, fontWeight: '900', color: '#ffffff' },
+  appleText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
   orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
   orText: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: '700' },
