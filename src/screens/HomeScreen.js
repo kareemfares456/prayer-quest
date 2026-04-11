@@ -20,35 +20,6 @@ const CHILD_THEMES = [
   { grad: ['#60a5fa', '#3b82f6'], bg: ['#040e20', '#081530', '#040e20'], accent: '#60a5fa' },
 ];
 
-const BOY_THEME = {
-  grad: ['#ef4444', '#1d4ed8'],
-  bg: ['#060810', '#0a1428', '#0d0510'],
-  accent: '#ef4444',
-  backLabel: '⚡ HQ',
-  celebEmoji: '⚡',
-  celebTitle: 'LEGENDARY!',
-  celebSub: 'All 5 missions complete! 🦸',
-  getMotivation: (n) =>
-    n === 0 ? 'Suit up, hero — every prayer is your power! ⚡'
-    : n < 3  ? `Strong start! ${5 - n} more missions to go.`
-    : n < 5  ? `Hero mode! Just ${5 - n} left! 💥`
-    : 'LEGENDARY! All missions complete! 🏆',
-};
-
-const GIRL_THEME = {
-  grad: ['#ec4899', '#c084fc'],
-  bg: ['#1a0520', '#2d0838', '#1a0520'],
-  accent: '#ec4899',
-  backLabel: '💖 Home',
-  celebEmoji: '💖',
-  celebTitle: 'Fabulous!',
-  celebSub: 'All 5 prayers sparkle today! ✨',
-  getMotivation: (n) =>
-    n === 0 ? 'Shine bright — every prayer is magic! ✨'
-    : n < 3  ? `Glowing start! ${5 - n} more to sparkle! 💫`
-    : n < 5  ? `Almost there! Just ${5 - n} left! 💖`
-    : 'You are absolutely AMAZING today! 👑',
-};
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -114,18 +85,12 @@ const ConfettiPiece = ({ x, color, size, delay }) => {
 };
 
 // ─── Celebration Overlay ──────────────────────────────────────────────────────
-const CelebrationOverlay = ({ visible, childName, gender, latestEarned }) => {
+const CelebrationOverlay = ({ visible, childName, latestEarned }) => {
   const bgOpacity = useRef(new Animated.Value(0)).current;
   const scale     = useRef(new Animated.Value(0.6)).current;
   const [confetti, setConfetti] = useState([]);
 
-  const isBoy  = gender === 'boy';
-  const isGirl = gender === 'girl';
-  const celebColors = isBoy
-    ? ['#ef4444','#1d4ed8','#fbbf24','#ffffff','#60a5fa','#f97316','#dc2626','#93c5fd']
-    : isGirl
-    ? ['#ec4899','#c084fc','#f9a8d4','#ffffff','#f472b6','#e879f9','#fde68a','#d946ef']
-    : ['#fbbf24','#818cf8','#34d399','#fb923c','#c084fc','#f472b6','#60a5fa','#ffffff'];
+  const celebColors = ['#818cf8','#c084fc','#fbbf24','#34d399','#fb923c','#60a5fa','#f472b6','#ffffff'];
 
   useEffect(() => {
     if (visible) {
@@ -157,27 +122,14 @@ const CelebrationOverlay = ({ visible, childName, gender, latestEarned }) => {
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {confetti.map(c => <ConfettiPiece key={c.id} {...c} />)}
       <Animated.View style={[hStyles.celebBg, { opacity: bgOpacity }]}>
-        <Animated.View style={[
-          hStyles.celebCard,
-          { transform: [{ scale }] },
-          isBoy  && { borderColor: 'rgba(239,68,68,0.6)', shadowColor: '#ef4444' },
-          isGirl && { borderColor: 'rgba(236,72,153,0.6)', shadowColor: '#ec4899' },
-        ]}>
-          <Text style={{ fontSize: 64, marginBottom: 8 }}>
-            {isBoy ? '⚡' : isGirl ? '💖' : '🎉'}
-          </Text>
-          <Text style={[
-            hStyles.celebTitle,
-            isBoy  && { color: '#ef4444' },
-            isGirl && { color: '#ec4899' },
-          ]}>
-            {isBoy ? 'LEGENDARY!' : isGirl ? 'Fabulous!' : 'Mashallah!'}
-          </Text>
+        <Animated.View style={[hStyles.celebCard, { transform: [{ scale }] }]}>
+          <Text style={{ fontSize: 64, marginBottom: 8 }}>🎉</Text>
+          <Text style={hStyles.celebTitle}>Mashallah!</Text>
           <Text style={hStyles.celebName}>{childName}!</Text>
           <Text style={hStyles.celebSub}>
             {latestEarned
               ? `${latestEarned.icon || '🏆'} ${latestEarned.label?.trim() || 'Reward'} earned — Mashallah!`
-              : isBoy ? 'All 5 missions complete! 🦸' : isGirl ? 'All 5 prayers sparkle today! ✨' : 'All 5 prayers done today 🙏'}
+              : 'All 5 prayers done today 🙏'}
           </Text>
         </Animated.View>
       </Animated.View>
@@ -418,9 +370,7 @@ export default function HomeScreen({ navigation, route }) {
 
   const childIndex  = state.children.findIndex(c => c.id === childId);
   const child       = state.children[childIndex] ?? state.children[0];
-  const baseTheme   = CHILD_THEMES[Math.max(0, childIndex) % CHILD_THEMES.length];
-  const genderTheme = child?.gender === 'boy' ? BOY_THEME : child?.gender === 'girl' ? GIRL_THEME : null;
-  const theme       = genderTheme ? { ...baseTheme, ...genderTheme } : baseTheme;
+  const theme = CHILD_THEMES[Math.max(0, childIndex) % CHILD_THEMES.length];
 
   const todayLog     = getTodayLog(child?.id);
   const streak       = getStreak(child?.id);
@@ -519,8 +469,6 @@ export default function HomeScreen({ navigation, route }) {
           <Text style={hStyles.motivationText}>
             {allDone && latestEarned
               ? `${latestEarned.label?.trim() || 'Reward'} earned — keep it up! ${latestEarned.icon || '⭐'}`
-              : genderTheme
-              ? genderTheme.getMotivation(prayedCount)
               : prayedCount === 0
               ? 'Start your quest — every prayer counts!'
               : prayedCount < 3
@@ -567,7 +515,7 @@ export default function HomeScreen({ navigation, route }) {
         </TouchableOpacity>
       </ScrollView>
 
-      <CelebrationOverlay visible={showCelebration} childName={child.name} gender={child.gender} latestEarned={latestEarned} />
+      <CelebrationOverlay visible={showCelebration} childName={child.name} latestEarned={latestEarned} />
     </LinearGradient>
   );
 }
