@@ -852,6 +852,14 @@ function AccountModal({ visible, onClose }) {
                 </View>
               )}
 
+              {/* ── Sign Out ── */}
+              <TouchableOpacity
+                style={acctStyles.signOutBtn}
+                onPress={async () => { await signOut(auth); }}
+              >
+                <Text style={acctStyles.signOutText}>Sign Out</Text>
+              </TouchableOpacity>
+
               {/* ── Delete Account ── */}
               <View style={acctStyles.dangerZone}>
                 <Text style={acctStyles.dangerLabel}>DELETE ACCOUNT</Text>
@@ -960,6 +968,11 @@ const acctStyles = StyleSheet.create({
   },
   actionBtnText: { color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: '700' },
   hint: { color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 4 },
+  signOutBtn: {
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 12, paddingVertical: 14, alignItems: 'center',
+  },
+  signOutText: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '700' },
   dangerZone: {
     backgroundColor: 'rgba(248,113,113,0.06)',
     borderWidth: 1.5, borderColor: 'rgba(248,113,113,0.2)',
@@ -1222,17 +1235,6 @@ export default function ParentDashboard({ navigation }) {
           <Text style={styles.quoteSource}>— Hadith</Text>
         </View>}
 
-        {/* Sign out */}
-        <TouchableOpacity
-          style={styles.signOutBtn}
-          onPress={async () => {
-            await signOut(auth);
-            // App.js onAuthStateChanged fires with null → clears stale mode →
-            // setStatus('none') → navigator automatically shows ModeSelect.
-          }}
-        >
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {selectedChild && (
