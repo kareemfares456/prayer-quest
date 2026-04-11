@@ -1344,7 +1344,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
     borderRadius: 20, padding: 12, gap: 10,
   },
-  cardChevron: { color: 'rgba(255,255,255,0.3)', fontSize: 16, fontWeight: '400', marginLeft: 2, marginTop: 2 },
+  cardChevron: { color: 'rgba(255,255,255,0.55)', fontSize: 18, fontWeight: '600', marginLeft: 2, marginTop: 1 },
   childCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowAvatar: {
     width: 38, height: 38, borderRadius: 19,
