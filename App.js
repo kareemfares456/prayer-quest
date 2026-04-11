@@ -38,6 +38,7 @@ function AppNavigator() {
 
   return (
     <Stack.Navigator
+      key={appStatus}
       screenOptions={{ headerShown: false, animation: 'slide_from_right' }}
     >
       {/*
