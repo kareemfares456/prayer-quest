@@ -1081,7 +1081,6 @@ function ChildProfileModal({ visible, onClose, childId, theme }) {
               </TouchableOpacity>
             )}
 
-            <View style={{ height: 40 }} />
           </ScrollView>
         </View>
       </View>
