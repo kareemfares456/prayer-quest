@@ -45,9 +45,9 @@ function StepWelcome({ onNext, onGoogle, onApple, error, onLogin }) {
   return (
     <View style={styles.stepContainer}>
       <Text style={styles.welcomeEmoji}>🕌</Text>
-      <Text style={styles.welcomeTitle}>Welcome to{'\n'}Prayer Quest</Text>
+      <Text style={styles.welcomeTitle}>Prayer, made into a habit they'll love.</Text>
       <Text style={styles.welcomeSub}>
-        Help your children build a beautiful habit of daily prayer — with streaks, custom rewards, and real encouragement.
+        A gentle way to guide your child toward daily salah, with encouragement, streaks, and rewards that keep them coming back.
       </Text>
       <SocialRow onGoogle={onGoogle} onApple={onApple} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   appleIcon: { fontSize: 22, fontWeight: '700', color: '#ffffff' },
   socialBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
 
-  orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 12 },
   orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
   orText: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: '700' },
 

@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   googleIcon: { fontSize: 22, fontWeight: '900', color: '#ffffff' },
   appleIcon: { fontSize: 22, fontWeight: '700', color: '#ffffff' },
   socialBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
-  orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 12 },
   orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
   orText: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: '700' },
   footer: {
