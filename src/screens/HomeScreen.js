@@ -142,10 +142,9 @@ const CelebrationOverlay = ({ visible, childName, latestEarned }) => {
 const ENCOURAGE = ['', 'Great start! 🌟', "You're doing great! ✨", 'More than halfway! 💪', 'Almost there! 🔥', 'Mashallah! All done! 🎉'];
 
 // Arc goes from 135° (lower-left / ~7 o'clock) clockwise 270° to 45° (lower-right / ~5 o'clock)
-// leaving a gap at the bottom — matching the reference design.
-const GAUGE_TOTAL_DOTS = 48;
-const GAUGE_START_DEG  = 135;
-const GAUGE_ARC_DEG    = 270;
+// leaving a gap at the bottom. Exactly 5 dots — one per prayer.
+const GAUGE_START_DEG = 135;
+const GAUGE_ARC_DEG   = 270;
 
 // Linear interpolation between two hex colours (as RGB)
 function lerpColor(hexA, hexB, t) {
@@ -159,7 +158,7 @@ function lerpColor(hexA, hexB, t) {
   return `rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;
 }
 
-// Gradient stops: green → teal → indigo → purple (matching the reference image)
+// Gradient stops: green → teal → indigo → purple
 function gaugeColor(t) {
   const stops = ['#4ade80', '#06b6d4', '#818cf8', '#c084fc'];
   const seg = (stops.length - 1) * t;
@@ -168,51 +167,54 @@ function gaugeColor(t) {
 }
 
 function PrayerGauge({ todayLog, theme }) {
-  const count      = PRAYERS.filter(p => todayLog[p.id]).length;
-  const SIZE       = 220;
-  const R          = 92;          // arc radius
-  const cx         = SIZE / 2;
-  const cy         = SIZE / 2;
-  const DOT_R      = 3.2;         // small track dot radius
-  const THUMB_R    = 7;           // larger end-of-progress dot
-  // how many of the 48 track dots are filled
-  const filledDots = Math.round((count / PRAYERS.length) * GAUGE_TOTAL_DOTS);
+  const count = PRAYERS.filter(p => todayLog[p.id]).length;
+  const N     = PRAYERS.length; // 5
+  const SIZE  = 220;
+  const R     = 92;
+  const cx    = SIZE / 2;
+  const cy    = SIZE / 2;
+  const DOT_R = 11;   // large dot radius
+  const GLOW  = 18;   // glow halo radius for the last filled dot
 
-  // Pre-compute all dot positions
-  const dots = Array.from({ length: GAUGE_TOTAL_DOTS }, (_, i) => {
-    const deg = GAUGE_START_DEG + (GAUGE_ARC_DEG * i) / (GAUGE_TOTAL_DOTS - 1);
+  // 5 dots evenly placed along the 270° arc
+  const dots = Array.from({ length: N }, (_, i) => {
+    const deg = GAUGE_START_DEG + (GAUGE_ARC_DEG * i) / (N - 1);
     const rad = (deg * Math.PI) / 180;
-    return { x: cx + R * Math.cos(rad), y: cy + R * Math.sin(rad), t: i / (GAUGE_TOTAL_DOTS - 1) };
+    const t   = i / (N - 1); // 0 → 1 across the arc
+    return { x: cx + R * Math.cos(rad), y: cy + R * Math.sin(rad), t };
   });
-
-  const thumb = count > 0 ? dots[filledDots - 1] : null;
 
   return (
     <View style={{ alignItems: 'center', paddingVertical: 6 }}>
       <View style={{ width: SIZE, height: SIZE }}>
-        {/* SVG arc of dots */}
+        {/* SVG: 5 prayer dots along the arc */}
         <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }}>
           {dots.map((d, i) => {
-            const filled = i < filledDots;
+            const done = i < count;
+            const isLast = done && i === count - 1;
             return (
-              <Circle
-                key={i}
-                cx={d.x}
-                cy={d.y}
-                r={DOT_R}
-                fill={filled ? gaugeColor(d.t) : 'rgba(255,255,255,0.13)'}
-              />
+              <>
+                {/* Soft glow behind the last filled dot */}
+                {isLast && (
+                  <Circle
+                    key={`glow-${i}`}
+                    cx={d.x}
+                    cy={d.y}
+                    r={GLOW}
+                    fill={gaugeColor(d.t)}
+                    opacity={0.22}
+                  />
+                )}
+                <Circle
+                  key={i}
+                  cx={d.x}
+                  cy={d.y}
+                  r={DOT_R}
+                  fill={done ? gaugeColor(d.t) : 'rgba(255,255,255,0.10)'}
+                />
+              </>
             );
           })}
-          {/* Progress thumb — larger dot at the end of filled section */}
-          {thumb && (
-            <Circle
-              cx={thumb.x}
-              cy={thumb.y}
-              r={THUMB_R}
-              fill={gaugeColor(thumb.t)}
-            />
-          )}
         </Svg>
 
         {/* Center content */}
