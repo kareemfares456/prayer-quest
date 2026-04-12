@@ -1,4 +1,4 @@
-name: EAS iOS Test Build
+name: EAS iOS Simulator Build
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build iOS Preview
+    name: Build iOS Simulator
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build iOS preview
+      - name: Build iOS simulator
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
@@ -31,4 +31,4 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Run EAS build
-        run: eas build --platform ios --profile preview --non-interactive
+        run: eas build --platform ios --profile development --non-interactive
