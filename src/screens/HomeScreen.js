@@ -240,15 +240,17 @@ function PrayerGauge({ todayLog, theme }) {
           })}
         </Svg>
 
-        {/* Center content */}
+        {/* Center content — constrained to inner circle (~140px diameter) */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 64, fontWeight: '900', color: '#fff', lineHeight: 68 }}>{count}</Text>
-          <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: '700' }}>of 5 prayers</Text>
-          {count > 0 && (
-            <Text style={{ fontSize: 11, color: theme.accent, fontWeight: '800', marginTop: 5, textAlign: 'center', paddingHorizontal: 30 }}>
-              {ENCOURAGE[count]}
-            </Text>
-          )}
+          <View style={{ width: 112, alignItems: 'center' }}>
+            <Text style={{ fontSize: 56, fontWeight: '900', color: '#fff', lineHeight: 60 }}>{count}</Text>
+            <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: '700' }}>of 5 prayers</Text>
+            {count > 0 && (
+              <Text style={{ fontSize: 10, color: theme.accent, fontWeight: '800', marginTop: 4, textAlign: 'center' }}>
+                {ENCOURAGE[count]}
+              </Text>
+            )}
+          </View>
         </View>
       </View>
     </View>
