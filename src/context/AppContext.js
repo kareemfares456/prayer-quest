@@ -157,11 +157,20 @@ export function AppProvider({ children: nodes }) {
   const loadChildById = useCallback(async (childId) => {
     // Already loaded
     if (children.some(c => c.id === childId)) return;
-    const snap = await getDoc(doc(db, 'children', childId));
-    if (snap.exists()) {
-      setChildren([{ id: snap.id, ...snap.data() }]);
+    try {
+      const snap = await getDoc(doc(db, 'children', childId));
+      if (snap.exists()) {
+        setChildren([{ id: snap.id, ...snap.data() }]);
+      } else {
+        // Document doesn't exist — stale session, clear it so app returns to login
+        console.warn('[loadChildById] Child doc not found, clearing session:', childId);
+        await clearChildSession();
+      }
+    } catch (e) {
+      console.warn('[loadChildById] Firestore error, clearing session:', e);
+      await clearChildSession();
     }
-  }, [children]);
+  }, [children, clearChildSession]);
 
   // ─── Firestore mutations ────────────────────────────────────────────────────
 
