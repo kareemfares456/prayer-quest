@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -14,27 +13,18 @@ import { signInWithApple } from '../utils/appleAuth';
 import { signInWithGoogle } from '../utils/googleAuth';
 
 // ─── Social Buttons ────────────────────────────────────────────────────────────
-function GoogleBtn({ onPress }) {
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.socialBtn}>
-      <Text style={styles.socialIcon}>G</Text>
-      <Text style={styles.socialText}>Google</Text>
-    </TouchableOpacity>
-  );
-}
-
 function SocialRow({ onGoogle, onApple }) {
   return (
-    <View style={styles.socialRow}>
-      <GoogleBtn onPress={onGoogle} />
+    <View style={styles.socialStack}>
+      <TouchableOpacity onPress={onGoogle} activeOpacity={0.85} style={styles.socialBtn}>
+        <Text style={styles.googleIcon}>G</Text>
+        <Text style={styles.socialBtnText}>Continue with Google</Text>
+      </TouchableOpacity>
       {Platform.OS === 'ios' && (
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={14}
-          style={styles.appleBtn}
-          onPress={onApple}
-        />
+        <TouchableOpacity onPress={onApple} activeOpacity={0.85} style={styles.socialBtn}>
+          <Text style={styles.appleIcon}></Text>
+          <Text style={styles.socialBtnText}>Continue with Apple</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -227,17 +217,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  socialRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
+  socialStack: { gap: 10, marginBottom: 4 },
   socialBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#ffffff', borderRadius: 14,
-    paddingVertical: 13,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 14, paddingVertical: 14,
   },
-  socialIcon: { fontSize: 16, fontWeight: '900', color: '#1f1f1f' },
-  socialText: { color: '#1f1f1f', fontSize: 14, fontWeight: '700' },
-  appleBtn: { flex: 1, height: 46 },
+  googleIcon: { fontSize: 16, fontWeight: '900', color: '#ffffff' },
+  appleIcon: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
+  socialBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
 
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
   orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },

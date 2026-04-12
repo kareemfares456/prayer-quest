@@ -12,21 +12,20 @@ import { AppTextInput, PrimaryBtn, GhostBtn } from '../components/UI';
 import { signInWithApple } from '../utils/appleAuth';
 import { signInWithGoogle } from '../utils/googleAuth';
 
-function GoogleBtn({ onPress }) {
+function SocialButtons({ onGoogle, onApple }) {
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.socialBtn}>
-      <Text style={styles.socialIcon}>G</Text>
-      <Text style={styles.socialText}>Google</Text>
-    </TouchableOpacity>
-  );
-}
-
-function AppleBtn({ onPress }) {
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.appleSocialBtn}>
-      <Text style={styles.appleIcon}></Text>
-      <Text style={styles.appleText}>Apple</Text>
-    </TouchableOpacity>
+    <View style={styles.socialStack}>
+      <TouchableOpacity onPress={onGoogle} activeOpacity={0.85} style={styles.socialBtn}>
+        <Text style={styles.googleIcon}>G</Text>
+        <Text style={styles.socialBtnText}>Continue with Google</Text>
+      </TouchableOpacity>
+      {Platform.OS === 'ios' && (
+        <TouchableOpacity onPress={onApple} activeOpacity={0.85} style={styles.socialBtn}>
+          <Text style={styles.appleIcon}></Text>
+          <Text style={styles.socialBtnText}>Continue with Apple</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
@@ -117,12 +116,7 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.title}>Welcome back</Text>
               <Text style={styles.sub}>Sign in to your parent account</Text>
 
-              <View style={styles.socialRow}>
-                <GoogleBtn onPress={handleGoogleLogin} />
-                {Platform.OS === 'ios' && (
-                  <AppleBtn onPress={handleAppleLogin} />
-                )}
-              </View>
+              <SocialButtons onGoogle={handleGoogleLogin} onApple={handleAppleLogin} />
               <OrDivider />
 
               <AppTextInput
@@ -182,25 +176,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   btnStack: { gap: 8, marginTop: 16 },
-  socialRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
+  socialStack: { gap: 10, marginBottom: 4 },
   socialBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#ffffff', borderRadius: 14,
-    paddingVertical: 13,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 14, paddingVertical: 14,
   },
-  socialIcon: { fontSize: 16, fontWeight: '900', color: '#1f1f1f' },
-  socialText: { color: '#1f1f1f', fontSize: 14, fontWeight: '700' },
-  appleSocialBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#000000', borderRadius: 14,
-    paddingVertical: 13,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  appleIcon: { fontSize: 16, fontWeight: '900', color: '#ffffff' },
-  appleText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
+  googleIcon: { fontSize: 16, fontWeight: '900', color: '#ffffff' },
+  appleIcon: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
+  socialBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
   orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
   orText: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: '700' },
