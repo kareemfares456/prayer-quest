@@ -85,9 +85,9 @@ function StepParent({ data, onChange, onNext, onBack, onGoogle, onApple, loading
 }
 
 // ─── Main Signup Screen ───────────────────────────────────────────────────────
-export default function SignupScreen({ navigation }) {
+export default function SignupScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(route?.params?.initialStep ?? 0);
   const [parent, setParent] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

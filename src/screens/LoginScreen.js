@@ -141,7 +141,7 @@ export default function LoginScreen({ navigation }) {
                 <PrimaryBtn onPress={handleLogin} disabled={!valid || loading}>
                   {loading ? <ActivityIndicator color="#fff" size="small" /> : 'Sign In →'}
                 </PrimaryBtn>
-                <TouchableOpacity onPress={() => navigation.navigate('Signup')} style={styles.loginLink} activeOpacity={0.7}>
+                <TouchableOpacity onPress={() => navigation.navigate('Signup', { initialStep: 1 })} style={styles.loginLink} activeOpacity={0.7}>
                   <Text style={styles.loginLinkText}>New here? <Text style={styles.loginLinkAccent}>Create an account</Text></Text>
                 </TouchableOpacity>
                 <GhostBtn onPress={() => navigation.navigate('ModeSelect')}>
