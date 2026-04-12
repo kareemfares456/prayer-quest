@@ -142,42 +142,59 @@ const ENCOURAGE = ['', 'Great start! 🌟', "You're doing great! ✨", 'More tha
 
 function PrayerGauge({ todayLog, theme }) {
   const count = PRAYERS.filter(p => todayLog[p.id]).length;
-  const SIZE = 220;
-  const R = 84;
-  const BAR_W = 14;
-  const BAR_H = 42;
-  const ANGLES = [-90, -18, 54, 126, 198]; // 5 positions clockwise from top
+  const SIZE = 210;
+  const RING_R = 90;   // radius of the faint ring
+  const DOT_R = 78;    // radius where dots sit
+  const DOT = 16;      // dot diameter
+  const ANGLES = [-90, -18, 54, 126, 198];
 
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 10 }}>
+    <View style={{ alignItems: 'center', paddingVertical: 6 }}>
       <View style={{ width: SIZE, height: SIZE }}>
-        {/* Center */}
+        {/* Faint guide ring */}
+        <View style={{
+          position: 'absolute',
+          left: SIZE / 2 - RING_R,
+          top: SIZE / 2 - RING_R,
+          width: RING_R * 2,
+          height: RING_R * 2,
+          borderRadius: RING_R,
+          borderWidth: 1.5,
+          borderColor: 'rgba(255,255,255,0.07)',
+        }} />
+
+        {/* Center content */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 72, fontWeight: '900', color: '#fff', lineHeight: 78 }}>{count}</Text>
-          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: '700' }}>of 5 prayers</Text>
+          <Text style={{ fontSize: 64, fontWeight: '900', color: '#fff', lineHeight: 68 }}>{count}</Text>
+          <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: '700' }}>of 5 prayers</Text>
           {count > 0 && (
-            <Text style={{ fontSize: 11, color: theme.accent, fontWeight: '800', marginTop: 6, textAlign: 'center', paddingHorizontal: 20 }}>
+            <Text style={{ fontSize: 11, color: theme.accent, fontWeight: '800', marginTop: 5, textAlign: 'center', paddingHorizontal: 30 }}>
               {ENCOURAGE[count]}
             </Text>
           )}
         </View>
-        {/* 5 segment tick marks */}
+
+        {/* 5 prayer dots */}
         {PRAYERS.map((p, i) => {
           const done = !!todayLog[p.id];
           const angle = ANGLES[i];
           const rad = (angle * Math.PI) / 180;
-          const cx = SIZE / 2 + R * Math.cos(rad);
-          const cy = SIZE / 2 + R * Math.sin(rad);
+          const cx = SIZE / 2 + DOT_R * Math.cos(rad);
+          const cy = SIZE / 2 + DOT_R * Math.sin(rad);
           return (
             <View key={p.id} style={{
               position: 'absolute',
-              left: cx - BAR_W / 2,
-              top: cy - BAR_H / 2,
-              width: BAR_W,
-              height: BAR_H,
-              borderRadius: BAR_W / 2,
-              backgroundColor: done ? theme.accent : 'rgba(255,255,255,0.1)',
-              transform: [{ rotate: `${angle + 90}deg` }],
+              left: cx - DOT / 2,
+              top: cy - DOT / 2,
+              width: DOT,
+              height: DOT,
+              borderRadius: DOT / 2,
+              backgroundColor: done ? theme.accent : 'rgba(255,255,255,0.08)',
+              borderWidth: 2,
+              borderColor: done ? theme.accent : 'rgba(255,255,255,0.14)',
+              shadowColor: done ? theme.accent : 'transparent',
+              shadowOpacity: done ? 0.7 : 0,
+              shadowRadius: 6,
             }} />
           );
         })}
