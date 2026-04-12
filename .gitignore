@@ -35,4 +35,5 @@ android/.gradle/
 *.swo
 
 # Claude
-.claude/
+.claude/*
+!.claude/settings.json

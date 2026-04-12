@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "WorktreeCreate": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"continue\": false, \"stopReason\": \"Worktree creation is disabled for this project. Work directly on the current branch.\"}'"
+          }
+        ]
+      }
+    ]
+  }
+}
