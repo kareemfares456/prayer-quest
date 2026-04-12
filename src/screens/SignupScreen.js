@@ -52,9 +52,9 @@ function StepWelcome({ onNext, onGoogle, onApple, error, onLogin }) {
       <SocialRow onGoogle={onGoogle} onApple={onApple} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <OrDivider />
-      <PrimaryBtn onPress={onNext}>Continue with Email →</PrimaryBtn>
-      <TouchableOpacity onPress={onLogin} style={styles.loginLink} activeOpacity={0.7}>
-        <Text style={styles.loginLinkText}>Already have an account? <Text style={styles.loginLinkAccent}>Sign in</Text></Text>
+      <PrimaryBtn onPress={onLogin}>Sign In →</PrimaryBtn>
+      <TouchableOpacity onPress={onNext} style={styles.loginLink} activeOpacity={0.7}>
+        <Text style={styles.loginLinkText}>New here? <Text style={styles.loginLinkAccent}>Create an account</Text></Text>
       </TouchableOpacity>
     </View>
   );
