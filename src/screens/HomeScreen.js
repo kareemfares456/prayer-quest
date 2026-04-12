@@ -141,11 +141,6 @@ const CelebrationOverlay = ({ visible, childName, latestEarned }) => {
 // ─── Prayer Gauge ─────────────────────────────────────────────────────────────
 const ENCOURAGE = ['', 'Great start! 🌟', "You're doing great! ✨", 'More than halfway! 💪', 'Almost there! 🔥', 'Mashallah! All done! 🎉'];
 
-// Arc goes from 135° (lower-left / ~7 o'clock) clockwise 270° to 45° (lower-right / ~5 o'clock)
-// leaving a gap at the bottom. Exactly 5 dots — one per prayer.
-const GAUGE_START_DEG = 135;
-const GAUGE_ARC_DEG   = 270;
-
 // Linear interpolation between two hex colours (as RGB)
 function lerpColor(hexA, hexB, t) {
   const parse = h => [
@@ -158,7 +153,7 @@ function lerpColor(hexA, hexB, t) {
   return `rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;
 }
 
-// Gradient stops: green → teal → indigo → purple
+// Per-segment colour: green → teal → indigo → purple
 function gaugeColor(t) {
   const stops = ['#4ade80', '#06b6d4', '#818cf8', '#c084fc'];
   const seg = (stops.length - 1) * t;
@@ -172,7 +167,7 @@ function polarToCart(cx, cy, r, deg) {
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-// Build an SVG arc path (always clockwise)
+// Build a clockwise SVG arc path string
 function arcPath(cx, cy, r, startDeg, endDeg) {
   const s = polarToCart(cx, cy, r, startDeg);
   const e = polarToCart(cx, cy, r, endDeg);
@@ -181,86 +176,68 @@ function arcPath(cx, cy, r, startDeg, endDeg) {
 }
 
 function PrayerGauge({ todayLog, theme }) {
-  const count = PRAYERS.filter(p => todayLog[p.id]).length;
-  const N     = PRAYERS.length; // 5
-  const SIZE  = 220;
-  const R     = 92;
-  const cx    = SIZE / 2;
-  const cy    = SIZE / 2;
-  const DOT_R = 11;   // large dot radius
-  const GLOW  = 18;   // glow halo radius for the last filled dot
-  const LINE_W = 3.5; // arc stroke width
-
-  // 5 dots evenly placed along the 270° arc
-  const dots = Array.from({ length: N }, (_, i) => {
-    const deg = GAUGE_START_DEG + (GAUGE_ARC_DEG * i) / (N - 1);
-    const t   = i / (N - 1);
-    const pos = polarToCart(cx, cy, R, deg);
-    return { ...pos, t, deg };
-  });
-
-  // The filled arc ends at the last completed dot's angle (count>1 to avoid zero-length arc)
-  const filledEndDeg = count > 1
-    ? GAUGE_START_DEG + (GAUGE_ARC_DEG * (count - 1)) / (N - 1)
-    : null;
-  const fullEndDeg = GAUGE_START_DEG + GAUGE_ARC_DEG; // 405° → same as 45°
-
-  // Gradient anchor points: start=dot[0], end=dot[4] (horizontal span of the arc)
-  const gx1 = dots[0].x;
-  const gy1 = dots[0].y;
-  const gx2 = dots[N - 1].x;
-  const gy2 = dots[N - 1].y;
+  const count  = PRAYERS.filter(p => todayLog[p.id]).length;
+  const N      = PRAYERS.length; // 5
+  const SIZE   = 220;
+  const cx     = SIZE / 2;
+  const cy     = SIZE / 2;
+  const R      = 82;   // centre radius of the thick ring
+  const STROKE = 24;   // segment thickness
+  const GAP    = 8;    // degrees gap between segments
+  const SEG    = 360 / N - GAP; // ~64° per segment
+  const HALF   = GAP / 2;
 
   return (
     <View style={{ alignItems: 'center', paddingVertical: 6 }}>
       <View style={{ width: SIZE, height: SIZE }}>
-        {/* SVG: arc lines + 5 prayer dots */}
         <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }}>
-          <Defs>
-            {/* Gradient runs from arc start → arc end (left → right) */}
-            <SvgLinearGradient id="arcGrad" x1={gx1} y1={gy1} x2={gx2} y2={gy2} gradientUnits="userSpaceOnUse">
-              <Stop offset="0"    stopColor="#4ade80" />
-              <Stop offset="0.35" stopColor="#06b6d4" />
-              <Stop offset="0.7"  stopColor="#818cf8" />
-              <Stop offset="1"    stopColor="#c084fc" />
-            </SvgLinearGradient>
-          </Defs>
 
-          {/* Faint full-arc track */}
-          <Path
-            d={arcPath(cx, cy, R, GAUGE_START_DEG, fullEndDeg)}
-            stroke="rgba(255,255,255,0.10)"
-            strokeWidth={LINE_W}
+          {/* Outer decorative ring */}
+          <Circle
+            cx={cx} cy={cy}
+            r={R + STROKE / 2 + 5}
+            stroke="rgba(255,255,255,0.06)"
+            strokeWidth={1.5}
             fill="none"
-            strokeLinecap="round"
           />
 
-          {/* Gradient filled arc (only when 2+ prayers done) */}
-          {filledEndDeg && (
-            <Path
-              d={arcPath(cx, cy, R, GAUGE_START_DEG, filledEndDeg)}
-              stroke="url(#arcGrad)"
-              strokeWidth={LINE_W}
-              fill="none"
-              strokeLinecap="round"
-            />
-          )}
+          {/* 5 segments — one per prayer */}
+          {Array.from({ length: N }, (_, i) => {
+            const done     = i < count;
+            const t        = i / (N - 1 || 1);
+            // Start each segment at top (-90°), spaced 72° apart, with half-gap on each side
+            const startDeg = -90 + (360 / N) * i + HALF;
+            const endDeg   = startDeg + SEG;
+            return (
+              <Path
+                key={i}
+                d={arcPath(cx, cy, R, startDeg, endDeg)}
+                stroke={done ? gaugeColor(t) : 'rgba(255,255,255,0.07)'}
+                strokeWidth={STROKE}
+                fill="none"
+                strokeLinecap="round"
+                opacity={done ? 1 : 1}
+              />
+            );
+          })}
 
-          {/* Glow behind last filled dot */}
-          {count > 0 && (
-            <Circle cx={dots[count - 1].x} cy={dots[count - 1].y} r={GLOW} fill={gaugeColor(dots[count - 1].t)} opacity={0.22} />
-          )}
-
-          {/* 5 prayer dots */}
-          {dots.map((d, i) => (
-            <Circle
-              key={i}
-              cx={d.x}
-              cy={d.y}
-              r={DOT_R}
-              fill={i < count ? gaugeColor(d.t) : 'rgba(255,255,255,0.10)'}
-            />
-          ))}
+          {/* Subtle glow layer on completed segments (drawn second = on top) */}
+          {Array.from({ length: count }, (_, i) => {
+            const t        = i / (N - 1 || 1);
+            const startDeg = -90 + (360 / N) * i + HALF;
+            const endDeg   = startDeg + SEG;
+            return (
+              <Path
+                key={`g${i}`}
+                d={arcPath(cx, cy, R, startDeg, endDeg)}
+                stroke={gaugeColor(t)}
+                strokeWidth={STROKE + 8}
+                fill="none"
+                strokeLinecap="round"
+                opacity={0.18}
+              />
+            );
+          })}
         </Svg>
 
         {/* Center content */}
