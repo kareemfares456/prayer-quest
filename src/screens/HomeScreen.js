@@ -4,7 +4,7 @@ import {
   StyleSheet, Animated, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { COLORS, PRAYERS } from '../constants';
@@ -166,6 +166,20 @@ function gaugeColor(t) {
   return lerpColor(stops[idx], stops[idx + 1], seg - idx);
 }
 
+// Convert polar angle → SVG cartesian
+function polarToCart(cx, cy, r, deg) {
+  const rad = (deg * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+// Build an SVG arc path (always clockwise)
+function arcPath(cx, cy, r, startDeg, endDeg) {
+  const s = polarToCart(cx, cy, r, startDeg);
+  const e = polarToCart(cx, cy, r, endDeg);
+  const largeArc = (endDeg - startDeg) > 180 ? 1 : 0;
+  return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
+}
+
 function PrayerGauge({ todayLog, theme }) {
   const count = PRAYERS.filter(p => todayLog[p.id]).length;
   const N     = PRAYERS.length; // 5
@@ -175,46 +189,78 @@ function PrayerGauge({ todayLog, theme }) {
   const cy    = SIZE / 2;
   const DOT_R = 11;   // large dot radius
   const GLOW  = 18;   // glow halo radius for the last filled dot
+  const LINE_W = 3.5; // arc stroke width
 
   // 5 dots evenly placed along the 270° arc
   const dots = Array.from({ length: N }, (_, i) => {
     const deg = GAUGE_START_DEG + (GAUGE_ARC_DEG * i) / (N - 1);
-    const rad = (deg * Math.PI) / 180;
-    const t   = i / (N - 1); // 0 → 1 across the arc
-    return { x: cx + R * Math.cos(rad), y: cy + R * Math.sin(rad), t };
+    const t   = i / (N - 1);
+    const pos = polarToCart(cx, cy, R, deg);
+    return { ...pos, t, deg };
   });
+
+  // The filled arc ends at the last completed dot's angle (count>1 to avoid zero-length arc)
+  const filledEndDeg = count > 1
+    ? GAUGE_START_DEG + (GAUGE_ARC_DEG * (count - 1)) / (N - 1)
+    : null;
+  const fullEndDeg = GAUGE_START_DEG + GAUGE_ARC_DEG; // 405° → same as 45°
+
+  // Gradient anchor points: start=dot[0], end=dot[4] (horizontal span of the arc)
+  const gx1 = dots[0].x;
+  const gy1 = dots[0].y;
+  const gx2 = dots[N - 1].x;
+  const gy2 = dots[N - 1].y;
 
   return (
     <View style={{ alignItems: 'center', paddingVertical: 6 }}>
       <View style={{ width: SIZE, height: SIZE }}>
-        {/* SVG: 5 prayer dots along the arc */}
+        {/* SVG: arc lines + 5 prayer dots */}
         <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }}>
-          {dots.map((d, i) => {
-            const done = i < count;
-            const isLast = done && i === count - 1;
-            return (
-              <>
-                {/* Soft glow behind the last filled dot */}
-                {isLast && (
-                  <Circle
-                    key={`glow-${i}`}
-                    cx={d.x}
-                    cy={d.y}
-                    r={GLOW}
-                    fill={gaugeColor(d.t)}
-                    opacity={0.22}
-                  />
-                )}
-                <Circle
-                  key={i}
-                  cx={d.x}
-                  cy={d.y}
-                  r={DOT_R}
-                  fill={done ? gaugeColor(d.t) : 'rgba(255,255,255,0.10)'}
-                />
-              </>
-            );
-          })}
+          <Defs>
+            {/* Gradient runs from arc start → arc end (left → right) */}
+            <LinearGradient id="arcGrad" x1={gx1} y1={gy1} x2={gx2} y2={gy2} gradientUnits="userSpaceOnUse">
+              <Stop offset="0"    stopColor="#4ade80" />
+              <Stop offset="0.35" stopColor="#06b6d4" />
+              <Stop offset="0.7"  stopColor="#818cf8" />
+              <Stop offset="1"    stopColor="#c084fc" />
+            </LinearGradient>
+          </Defs>
+
+          {/* Faint full-arc track */}
+          <Path
+            d={arcPath(cx, cy, R, GAUGE_START_DEG, fullEndDeg)}
+            stroke="rgba(255,255,255,0.10)"
+            strokeWidth={LINE_W}
+            fill="none"
+            strokeLinecap="round"
+          />
+
+          {/* Gradient filled arc (only when 2+ prayers done) */}
+          {filledEndDeg && (
+            <Path
+              d={arcPath(cx, cy, R, GAUGE_START_DEG, filledEndDeg)}
+              stroke="url(#arcGrad)"
+              strokeWidth={LINE_W}
+              fill="none"
+              strokeLinecap="round"
+            />
+          )}
+
+          {/* Glow behind last filled dot */}
+          {count > 0 && (
+            <Circle cx={dots[count - 1].x} cy={dots[count - 1].y} r={GLOW} fill={gaugeColor(dots[count - 1].t)} opacity={0.22} />
+          )}
+
+          {/* 5 prayer dots */}
+          {dots.map((d, i) => (
+            <Circle
+              key={i}
+              cx={d.x}
+              cy={d.y}
+              r={DOT_R}
+              fill={i < count ? gaugeColor(d.t) : 'rgba(255,255,255,0.10)'}
+            />
+          ))}
         </Svg>
 
         {/* Center content */}

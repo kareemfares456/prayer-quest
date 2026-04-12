@@ -27,7 +27,7 @@ export const PRAYERS = [
   { id: 'dhuhr',   name: 'Dhuhr',   arabic: 'الظهر',  emoji: '☀️', time: 'Midday',    clockTime: '1:00 PM',  color: '#fbbf24' },
   { id: 'asr',     name: 'Asr',     arabic: 'العصر',  emoji: '🌤️', time: 'Afternoon', clockTime: '4:15 PM',  color: '#34d399' },
   { id: 'maghrib', name: 'Maghrib', arabic: 'المغرب', emoji: '🌅', time: 'Sunset',    clockTime: '6:45 PM',  color: '#fb923c' },
-  { id: 'isha',    name: 'Isha',    arabic: 'العشاء', emoji: '🌃', time: 'Night',     clockTime: '8:00 PM',  color: '#c084fc' },
+  { id: 'isha',    name: 'Isha',    arabic: 'العشاء', emoji: '🥱', time: 'Night',     clockTime: '8:00 PM',  color: '#c084fc' },
 ];
 
 // ─── Signup / Rewards ─────────────────────────────────────────────────────────
