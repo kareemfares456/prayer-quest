@@ -141,9 +141,9 @@ export default function LoginScreen({ navigation }) {
                 <PrimaryBtn onPress={handleLogin} disabled={!valid || loading}>
                   {loading ? <ActivityIndicator color="#fff" size="small" /> : 'Sign In →'}
                 </PrimaryBtn>
-                <GhostBtn onPress={() => navigation.navigate('Signup')}>
-                  Create an account
-                </GhostBtn>
+                <TouchableOpacity onPress={() => navigation.navigate('Signup')} style={styles.loginLink} activeOpacity={0.7}>
+                  <Text style={styles.loginLinkText}>New here? <Text style={styles.loginLinkAccent}>Create an account</Text></Text>
+                </TouchableOpacity>
                 <GhostBtn onPress={() => navigation.navigate('ModeSelect')}>
                   ← Back
                 </GhostBtn>
@@ -189,6 +189,9 @@ const styles = StyleSheet.create({
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 12 },
   orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
   orText: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: '700' },
+  loginLink: { alignItems: 'center', paddingVertical: 4 },
+  loginLinkText: { color: 'rgba(255,255,255,0.35)', fontSize: 13 },
+  loginLinkAccent: { color: '#818cf8', fontWeight: '700' },
   footer: {
     textAlign: 'center', color: 'rgba(255,255,255,0.15)',
     fontSize: 11, marginTop: 18, marginBottom: 8,
