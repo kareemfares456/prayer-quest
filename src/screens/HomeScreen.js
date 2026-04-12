@@ -4,7 +4,7 @@ import {
   StyleSheet, Animated, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { COLORS, PRAYERS } from '../constants';
@@ -218,12 +218,12 @@ function PrayerGauge({ todayLog, theme }) {
         <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }}>
           <Defs>
             {/* Gradient runs from arc start → arc end (left → right) */}
-            <LinearGradient id="arcGrad" x1={gx1} y1={gy1} x2={gx2} y2={gy2} gradientUnits="userSpaceOnUse">
+            <SvgLinearGradient id="arcGrad" x1={gx1} y1={gy1} x2={gx2} y2={gy2} gradientUnits="userSpaceOnUse">
               <Stop offset="0"    stopColor="#4ade80" />
               <Stop offset="0.35" stopColor="#06b6d4" />
               <Stop offset="0.7"  stopColor="#818cf8" />
               <Stop offset="1"    stopColor="#c084fc" />
-            </LinearGradient>
+            </SvgLinearGradient>
           </Defs>
 
           {/* Faint full-arc track */}
