@@ -45,7 +45,7 @@ function StepWelcome({ onNext, onGoogle, onApple, error, onLogin }) {
   return (
     <View style={styles.stepContainer}>
       <Text style={styles.welcomeEmoji}>🕌</Text>
-      <Text style={styles.welcomeTitle}>Prayer, made into a habit.</Text>
+      <Text style={styles.welcomeTitle}>Prayer, made into{'\n'}a habit.</Text>
       <Text style={styles.welcomeSub}>
         A gentle way to guide your child toward daily salah, with encouragement, streaks, and rewards that keep them coming back.
       </Text>
