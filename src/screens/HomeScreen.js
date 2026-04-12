@@ -4,6 +4,7 @@ import {
   StyleSheet, Animated, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { COLORS, PRAYERS } from '../constants';
@@ -140,28 +141,79 @@ const CelebrationOverlay = ({ visible, childName, latestEarned }) => {
 // ─── Prayer Gauge ─────────────────────────────────────────────────────────────
 const ENCOURAGE = ['', 'Great start! 🌟', "You're doing great! ✨", 'More than halfway! 💪', 'Almost there! 🔥', 'Mashallah! All done! 🎉'];
 
+// Arc goes from 135° (lower-left / ~7 o'clock) clockwise 270° to 45° (lower-right / ~5 o'clock)
+// leaving a gap at the bottom — matching the reference design.
+const GAUGE_TOTAL_DOTS = 48;
+const GAUGE_START_DEG  = 135;
+const GAUGE_ARC_DEG    = 270;
+
+// Linear interpolation between two hex colours (as RGB)
+function lerpColor(hexA, hexB, t) {
+  const parse = h => [
+    parseInt(h.slice(1, 3), 16),
+    parseInt(h.slice(3, 5), 16),
+    parseInt(h.slice(5, 7), 16),
+  ];
+  const [r1, g1, b1] = parse(hexA);
+  const [r2, g2, b2] = parse(hexB);
+  return `rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;
+}
+
+// Gradient stops: green → teal → indigo → purple (matching the reference image)
+function gaugeColor(t) {
+  const stops = ['#4ade80', '#06b6d4', '#818cf8', '#c084fc'];
+  const seg = (stops.length - 1) * t;
+  const idx = Math.min(Math.floor(seg), stops.length - 2);
+  return lerpColor(stops[idx], stops[idx + 1], seg - idx);
+}
+
 function PrayerGauge({ todayLog, theme }) {
-  const count = PRAYERS.filter(p => todayLog[p.id]).length;
-  const SIZE = 210;
-  const RING_R = 90;   // radius of the faint ring
-  const DOT_R = 78;    // radius where dots sit
-  const DOT = 16;      // dot diameter
-  const ANGLES = [-90, -18, 54, 126, 198];
+  const count      = PRAYERS.filter(p => todayLog[p.id]).length;
+  const SIZE       = 220;
+  const R          = 92;          // arc radius
+  const cx         = SIZE / 2;
+  const cy         = SIZE / 2;
+  const DOT_R      = 3.2;         // small track dot radius
+  const THUMB_R    = 7;           // larger end-of-progress dot
+  // how many of the 48 track dots are filled
+  const filledDots = Math.round((count / PRAYERS.length) * GAUGE_TOTAL_DOTS);
+
+  // Pre-compute all dot positions
+  const dots = Array.from({ length: GAUGE_TOTAL_DOTS }, (_, i) => {
+    const deg = GAUGE_START_DEG + (GAUGE_ARC_DEG * i) / (GAUGE_TOTAL_DOTS - 1);
+    const rad = (deg * Math.PI) / 180;
+    return { x: cx + R * Math.cos(rad), y: cy + R * Math.sin(rad), t: i / (GAUGE_TOTAL_DOTS - 1) };
+  });
+
+  const thumb = count > 0 ? dots[filledDots - 1] : null;
 
   return (
     <View style={{ alignItems: 'center', paddingVertical: 6 }}>
       <View style={{ width: SIZE, height: SIZE }}>
-        {/* Faint guide ring */}
-        <View style={{
-          position: 'absolute',
-          left: SIZE / 2 - RING_R,
-          top: SIZE / 2 - RING_R,
-          width: RING_R * 2,
-          height: RING_R * 2,
-          borderRadius: RING_R,
-          borderWidth: 1.5,
-          borderColor: 'rgba(255,255,255,0.07)',
-        }} />
+        {/* SVG arc of dots */}
+        <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }}>
+          {dots.map((d, i) => {
+            const filled = i < filledDots;
+            return (
+              <Circle
+                key={i}
+                cx={d.x}
+                cy={d.y}
+                r={DOT_R}
+                fill={filled ? gaugeColor(d.t) : 'rgba(255,255,255,0.13)'}
+              />
+            );
+          })}
+          {/* Progress thumb — larger dot at the end of filled section */}
+          {thumb && (
+            <Circle
+              cx={thumb.x}
+              cy={thumb.y}
+              r={THUMB_R}
+              fill={gaugeColor(thumb.t)}
+            />
+          )}
+        </Svg>
 
         {/* Center content */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
@@ -173,31 +225,6 @@ function PrayerGauge({ todayLog, theme }) {
             </Text>
           )}
         </View>
-
-        {/* 5 prayer dots */}
-        {PRAYERS.map((p, i) => {
-          const done = !!todayLog[p.id];
-          const angle = ANGLES[i];
-          const rad = (angle * Math.PI) / 180;
-          const cx = SIZE / 2 + DOT_R * Math.cos(rad);
-          const cy = SIZE / 2 + DOT_R * Math.sin(rad);
-          return (
-            <View key={p.id} style={{
-              position: 'absolute',
-              left: cx - DOT / 2,
-              top: cy - DOT / 2,
-              width: DOT,
-              height: DOT,
-              borderRadius: DOT / 2,
-              backgroundColor: done ? theme.accent : 'rgba(255,255,255,0.08)',
-              borderWidth: 2,
-              borderColor: done ? theme.accent : 'rgba(255,255,255,0.14)',
-              shadowColor: done ? theme.accent : 'transparent',
-              shadowOpacity: done ? 0.7 : 0,
-              shadowRadius: 6,
-            }} />
-          );
-        })}
       </View>
     </View>
   );
