@@ -21,7 +21,7 @@ function SocialButtons({ onGoogle, onApple }) {
       </TouchableOpacity>
       {Platform.OS === 'ios' && (
         <TouchableOpacity onPress={onApple} activeOpacity={0.85} style={styles.socialBtn}>
-          <Text style={styles.appleIcon}></Text>
+          <Text style={styles.appleIcon}>{'\uF8FF'}</Text>
           <Text style={styles.socialBtnText}>Continue with Apple</Text>
         </TouchableOpacity>
       )}
@@ -183,9 +183,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
     borderRadius: 14, paddingVertical: 14,
   },
-  googleIcon: { fontSize: 16, fontWeight: '900', color: '#ffffff' },
-  appleIcon: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
-  socialBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+  googleIcon: { fontSize: 22, fontWeight: '900', color: '#ffffff' },
+  appleIcon: { fontSize: 22, fontWeight: '700', color: '#ffffff' },
+  socialBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
   orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
   orText: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontWeight: '700' },
