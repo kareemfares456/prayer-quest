@@ -137,6 +137,87 @@ const CelebrationOverlay = ({ visible, childName, latestEarned }) => {
   );
 };
 
+// ─── Prayer Gauge ─────────────────────────────────────────────────────────────
+const ENCOURAGE = ['', 'Great start! 🌟', "You're doing great! ✨", 'More than halfway! 💪', 'Almost there! 🔥', 'Mashallah! All done! 🎉'];
+
+function PrayerGauge({ todayLog, theme }) {
+  const count = PRAYERS.filter(p => todayLog[p.id]).length;
+  const SIZE = 220;
+  const R = 84;
+  const BAR_W = 14;
+  const BAR_H = 42;
+  const ANGLES = [-90, -18, 54, 126, 198]; // 5 positions clockwise from top
+
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: 10 }}>
+      <View style={{ width: SIZE, height: SIZE }}>
+        {/* Center */}
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 72, fontWeight: '900', color: '#fff', lineHeight: 78 }}>{count}</Text>
+          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: '700' }}>of 5 prayers</Text>
+          {count > 0 && (
+            <Text style={{ fontSize: 11, color: theme.accent, fontWeight: '800', marginTop: 6, textAlign: 'center', paddingHorizontal: 20 }}>
+              {ENCOURAGE[count]}
+            </Text>
+          )}
+        </View>
+        {/* 5 segment tick marks */}
+        {PRAYERS.map((p, i) => {
+          const done = !!todayLog[p.id];
+          const angle = ANGLES[i];
+          const rad = (angle * Math.PI) / 180;
+          const cx = SIZE / 2 + R * Math.cos(rad);
+          const cy = SIZE / 2 + R * Math.sin(rad);
+          return (
+            <View key={p.id} style={{
+              position: 'absolute',
+              left: cx - BAR_W / 2,
+              top: cy - BAR_H / 2,
+              width: BAR_W,
+              height: BAR_H,
+              borderRadius: BAR_W / 2,
+              backgroundColor: done ? theme.accent : 'rgba(255,255,255,0.1)',
+              transform: [{ rotate: `${angle + 90}deg` }],
+            }} />
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+// ─── Prayer Buttons ───────────────────────────────────────────────────────────
+function PrayerButtons({ todayLog, onToggle, theme }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 8 }}>
+      {PRAYERS.map(p => {
+        const done = !!todayLog[p.id];
+        return (
+          <TouchableOpacity
+            key={p.id}
+            onPress={() => onToggle(p.id)}
+            activeOpacity={0.75}
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderRadius: 14,
+              backgroundColor: done ? theme.accent + '22' : 'rgba(255,255,255,0.05)',
+              borderWidth: 1.5,
+              borderColor: done ? theme.accent + '70' : 'rgba(255,255,255,0.1)',
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>{p.emoji}</Text>
+            <Text style={{ color: done ? theme.accent : 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '800', marginTop: 5 }}>
+              {p.name}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
 // ─── Prayer History Section ───────────────────────────────────────────────────
 function HistorySection({ logs, todayLog, today, theme, onTogglePrayer }) {
   const [tab, setTab] = useState('today');
@@ -162,33 +243,14 @@ function HistorySection({ logs, todayLog, today, theme, onTogglePrayer }) {
         </View>
       </View>
 
-      <View style={hStyles.card}>
-        {/* ── Today ── */}
-        {tab === 'today' && PRAYERS.map((p, i) => {
-          const done = !!todayLog[p.id];
-          return (
-            <TouchableOpacity
-              key={p.id}
-              onPress={() => onTogglePrayer(p.id)}
-              activeOpacity={0.72}
-              style={[
-                hStyles.prayerRow,
-                i < PRAYERS.length - 1 && hStyles.prayerDivider,
-                done && { backgroundColor: p.color + '08' },
-              ]}
-            >
-              <Text style={hStyles.prayerEmoji}>{p.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[hStyles.prayerName, done && { color: '#fff' }]}>{p.name}</Text>
-                <Text style={hStyles.prayerTime}>{p.clockTime} · {p.time}</Text>
-              </View>
-              <View style={[hStyles.checkCircle, done && { backgroundColor: p.color + '20', borderColor: p.color }]}>
-                {done && <Text style={[hStyles.checkMark, { color: p.color }]}>✓</Text>}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+      {tab === 'today' && (
+        <>
+          <PrayerGauge todayLog={todayLog} theme={theme} />
+          <PrayerButtons todayLog={todayLog} onToggle={onTogglePrayer} theme={theme} />
+        </>
+      )}
 
+      <View style={tab !== 'today' ? hStyles.card : null}>
         {/* ── Week ── */}
         {tab === 'week' && (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -444,7 +506,7 @@ export default function HomeScreen({ navigation, route }) {
             <Text style={hStyles.childName}>{child.name}</Text>
             <View style={hStyles.chips}>
               <View style={hStyles.chip}>
-                <Text style={hStyles.chipText}>✓ {completeDays}d</Text>
+                <Text style={hStyles.chipText}>✓ {completeDays} {completeDays === 1 ? 'day' : 'days'}</Text>
               </View>
               <View style={[hStyles.chip, { backgroundColor: theme.accent + '18', borderColor: theme.accent + '45' }]}>
                 <Text style={[hStyles.chipText, { color: theme.accent }]}>🏆 {earnedRewards.length}</Text>
