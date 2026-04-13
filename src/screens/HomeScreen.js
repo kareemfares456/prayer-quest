@@ -153,9 +153,9 @@ function lerpColor(hexA, hexB, t) {
   return `rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;
 }
 
-// Per-segment colour: green → teal → indigo → purple
+// Per-segment colour: green → cyan → indigo → purple → pink
 function gaugeColor(t) {
-  const stops = ['#4ade80', '#06b6d4', '#818cf8', '#c084fc'];
+  const stops = ['#4ade80', '#06b6d4', '#818cf8', '#c084fc', '#f472b6'];
   const seg = (stops.length - 1) * t;
   const idx = Math.min(Math.floor(seg), stops.length - 2);
   return lerpColor(stops[idx], stops[idx + 1], seg - idx);
@@ -178,50 +178,92 @@ function arcPath(cx, cy, r, startDeg, endDeg) {
 function PrayerGauge({ todayLog, theme }) {
   const count  = PRAYERS.filter(p => todayLog[p.id]).length;
   const N      = PRAYERS.length; // 5
-  const SIZE   = 220;
+  const SIZE   = 270;
   const cx     = SIZE / 2;
   const cy     = SIZE / 2;
-  const R      = 82;   // centre radius of the thick ring
-  const STROKE = 24;   // segment thickness
+  const R      = 98;   // centre radius of the thick ring
+  const STROKE = 20;   // segment thickness
   const GAP    = 8;    // degrees gap between segments
-  const SEG    = 360 / N - GAP; // ~64° per segment
+  const SEG    = 360 / N - GAP;
   const HALF   = GAP / 2;
+
+  // Outer ring radius & inner fill radius
+  const R_OUTER = R + STROKE / 2 + 7;
+  const R_INNER = R - STROKE / 2 - 2;  // ≈ 86 → leaves ~172px diameter for content
 
   return (
     <View style={{ alignItems: 'center', paddingVertical: 6 }}>
       <View style={{ width: SIZE, height: SIZE }}>
         <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }}>
+          <Defs>
+            {/* Outer ring gradient: violet → indigo → cyan → pink */}
+            <SvgLinearGradient id="ringGrad" x1={0} y1={0} x2={SIZE} y2={SIZE} gradientUnits="userSpaceOnUse">
+              <Stop offset="0"    stopColor="#7c3aed" />
+              <Stop offset="0.33" stopColor="#6366f1" />
+              <Stop offset="0.66" stopColor="#06b6d4" />
+              <Stop offset="1"    stopColor="#ec4899" />
+            </SvgLinearGradient>
+          </Defs>
 
-          {/* Outer decorative ring */}
-          <Circle
-            cx={cx} cy={cy}
-            r={R + STROKE / 2 + 5}
-            stroke="rgba(255,255,255,0.06)"
-            strokeWidth={1.5}
-            fill="none"
-          />
-
-          {/* 5 segments — one per prayer */}
-          {Array.from({ length: N }, (_, i) => {
-            const done     = i < count;
+          {/* ── Bloom: widest glow drawn FIRST so it bleeds beyond the outer ring ── */}
+          {Array.from({ length: count }, (_, i) => {
             const t        = i / (N - 1 || 1);
-            // Start each segment at top (-90°), spaced 72° apart, with half-gap on each side
+            const startDeg = -90 + (360 / N) * i + HALF;
+            const endDeg   = startDeg + SEG;
+            return (
+              <Path
+                key={`bloom${i}`}
+                d={arcPath(cx, cy, R, startDeg, endDeg)}
+                stroke={gaugeColor(t)}
+                strokeWidth={STROKE + 44}
+                fill="none"
+                strokeLinecap="round"
+                opacity={0.09}
+              />
+            );
+          })}
+
+          {/* Outer gradient ring border (on top of bloom) */}
+          <Circle cx={cx} cy={cy} r={R_OUTER} stroke="url(#ringGrad)" strokeWidth={2.5} fill="none" />
+
+          {/* Dark navy inner fill — hides the inward bleed of all glow layers */}
+          <Circle cx={cx} cy={cy} r={R_INNER} fill="#0d1240" />
+
+          {/* Inactive segments */}
+          {Array.from({ length: N }, (_, i) => {
+            if (i < count) return null;
             const startDeg = -90 + (360 / N) * i + HALF;
             const endDeg   = startDeg + SEG;
             return (
               <Path
                 key={i}
                 d={arcPath(cx, cy, R, startDeg, endDeg)}
-                stroke={done ? gaugeColor(t) : 'rgba(255,255,255,0.07)'}
+                stroke="#192156"
                 strokeWidth={STROKE}
                 fill="none"
                 strokeLinecap="round"
-                opacity={done ? 1 : 1}
               />
             );
           })}
 
-          {/* Subtle glow layer on completed segments (drawn second = on top) */}
+          {/* Active coloured segments */}
+          {Array.from({ length: count }, (_, i) => {
+            const t        = i / (N - 1 || 1);
+            const startDeg = -90 + (360 / N) * i + HALF;
+            const endDeg   = startDeg + SEG;
+            return (
+              <Path
+                key={`a${i}`}
+                d={arcPath(cx, cy, R, startDeg, endDeg)}
+                stroke={gaugeColor(t)}
+                strokeWidth={STROKE}
+                fill="none"
+                strokeLinecap="round"
+              />
+            );
+          })}
+
+          {/* Inner glow on completed segments (overflow aura) */}
           {Array.from({ length: count }, (_, i) => {
             const t        = i / (N - 1 || 1);
             const startDeg = -90 + (360 / N) * i + HALF;
@@ -231,22 +273,22 @@ function PrayerGauge({ todayLog, theme }) {
                 key={`g${i}`}
                 d={arcPath(cx, cy, R, startDeg, endDeg)}
                 stroke={gaugeColor(t)}
-                strokeWidth={STROKE + 8}
+                strokeWidth={STROKE + 18}
                 fill="none"
                 strokeLinecap="round"
-                opacity={0.18}
+                opacity={0.28}
               />
             );
           })}
         </Svg>
 
-        {/* Center content — constrained to inner circle (~140px diameter) */}
+        {/* Center content — fits comfortably inside R_INNER ≈ 86px radius */}
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ width: 112, alignItems: 'center' }}>
-            <Text style={{ fontSize: 56, fontWeight: '900', color: '#fff', lineHeight: 60 }}>{count}</Text>
-            <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: '700' }}>of 5 prayers</Text>
+          <View style={{ width: 138, alignItems: 'center' }}>
+            <Text style={{ fontSize: 64, fontWeight: '900', color: '#fff', lineHeight: 68 }}>{count}</Text>
+            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: '700' }}>of 5 prayers</Text>
             {count > 0 && (
-              <Text style={{ fontSize: 10, color: theme.accent, fontWeight: '800', marginTop: 4, textAlign: 'center' }}>
+              <Text style={{ fontSize: 13, color: theme.accent, fontWeight: '800', marginTop: 5, textAlign: 'center' }}>
                 {ENCOURAGE[count]}
               </Text>
             )}
